@@ -115,11 +115,8 @@
 #define ASCII_CODE_CR 0x0d
 #define ASCII_CODE_LF 0x0a
 
-#define ADDRESS_NOT_SET 0xff
-
 uchar input_process(void);
 void printHelp();
-char *getRevision();
 
 /** buffers used for commands and output strings */
 uchar buf[80], cmd_buf[64];
@@ -157,6 +154,8 @@ int main(void) {
 
 	/** print some usage infos */
 	printHelp();
+
+	gpib_set_partner_sad(ADDRESS_NOT_SET);
 
 #ifdef WRITE
 	/*
@@ -206,14 +205,22 @@ int main(void) {
 					sprintf(sbuf, "Set partner address to %u\n\r",
 							partnerAddress);
 					uart_puts(sbuf);
-					gpib_set_partner(partnerAddress);
+					gpib_set_partner_pad(partnerAddress);
+					break;
+				case 's':
+					/* set partner secondary address */
+					partnerAddress = atoi((char*) (&(buf[2])));
+					sprintf(sbuf, "Set partner secondary address to %u\n\r",
+							partnerAddress);
+					uart_puts(sbuf);
+					gpib_set_partner_sad(partnerAddress);
 					break;
 				case 'h':
 					/* print some usage infos */
 					printHelp();
 					break;
 				case 'i':
-					sprintf(buf, "Partner address is: %u\n\r", partnerAddress);
+					sprintf(buf, "Partner adress: primary: %u, secondary: %u\n\r", gpib_get_partner_pad(), gpib_get_partner_sad());
 					uart_puts(buf);
 					gpib_info();
 					break;
@@ -245,9 +252,16 @@ int main(void) {
 			gpib_cmd(cmd_buf, 1);
 
 			// set device (oszi) to listener mode
-			partnerAddress = address2ListenerAddress(gpib_get_partner());
+			partnerAddress = address2ListenerAddress(gpib_get_partner_pad());
 			cmd_buf[0] = partnerAddress;
 			gpib_cmd(cmd_buf, 1);
+			// secondary address if required
+			if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
+				partnerAddress = secondaryAdressToAdressByte(
+						gpib_get_partner_sad());
+				cmd_buf[0] = partnerAddress;
+				gpib_cmd(cmd_buf, 1);
+			}
 
 			// set myself (controller) to talker mode
 			partnerAddress = address2TalkerAddress(gpib_get_address());
@@ -290,9 +304,16 @@ int main(void) {
 			gpib_cmd(cmd_buf, 1);
 
 			// set device (oszi) to talker mode
-			partnerAddress = address2TalkerAddress(gpib_get_partner());
+			partnerAddress = address2TalkerAddress(gpib_get_partner_pad());
 			cmd_buf[0] = partnerAddress;
 			gpib_cmd(cmd_buf, 1);
+			// secondary address if required
+			if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
+				partnerAddress = secondaryAdressToAdressByte(
+						gpib_get_partner_sad());
+				cmd_buf[0] = partnerAddress;
+				gpib_cmd(cmd_buf, 1);
+			}
 
 			// read the answer until EOI is detected (then e becomes true)
 			do {
@@ -326,7 +347,7 @@ int main(void) {
 		} else {
 			if (s > old_time) {
 				// some time has passed - check if srq was set
-				srq = bit_is_clear(PIND,G_SRQ);
+				srq = bit_is_clear(PIND, G_SRQ);
 				if (srq)
 					uart_puts("\n\rSRQ detected.\n\r");
 			}
@@ -338,7 +359,7 @@ int main(void) {
 			srq = 0;
 			// handle srq with serial poll
 			partnerAddress = gpib_serial_poll();
-			gpib_set_partner(partnerAddress);
+			gpib_set_partner_pad(partnerAddress);
 			// check status for reason
 			buf[0] = 'E';
 			buf[1] = 'V';
@@ -449,8 +470,7 @@ uchar input_process(void) {
 
 void printHelp() {
 #ifdef WRITE
-	sprintf(
-			buf,
+	sprintf(buf,
 			"\n\rGPIB Controller (T/L/C) (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
 			REVISION);
 	uart_puts(buf);
@@ -459,8 +479,9 @@ void printHelp() {
 	uart_puts(buf);
 #endif
 	uart_puts("Internal commands:\n\r");
+	uart_puts(".a <device address> - set primary address of remote device\n\r");
 	uart_puts(
-			".a <device address> - set address of device to communicate with\n\r");
+			".s <device address> - set secondary address of of remote device\n\r");
 	uart_puts(".h - print help\n\r");
 	uart_puts(".i - dump info about GPIB lines\n\r");
 }

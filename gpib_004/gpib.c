@@ -34,7 +34,8 @@
 /** Controller object data */
 typedef struct {
 	uchar myaddress; /**< controller address,usually 0x00 */
-	uchar partneraddress; /**< currently addressed partner device */
+	uchar partner_pad; /**< currently addressed partner device */
+	uchar partner_sad;
 	uchar talks; /**< true while controller is talker */
 	uchar partners[MAX_PARTNER]; /**< list of active partners */
 } gpib_controller_t;
@@ -211,7 +212,8 @@ void queryPartners() {
 void gpib_controller_assign(uchar address) {
 	controller.myaddress = address;
 	controller.talks = 0;
-	controller.partneraddress = DEFAULT_PARTNER_ADDRESS; // init default active partner
+	controller.partner_pad = DEFAULT_PARTNER_ADDRESS; // init default active partner
+	controller.partner_sad = ADDRESS_NOT_SET;
 	/** get all partners on bus by querying them */
 	queryPartners();
 
@@ -563,17 +565,36 @@ uchar gpib_serial_poll(void) {
  * Set device to be controlled.
  * \param address Address of device.
  */
-void gpib_set_partner(uchar address) {
-	controller.partneraddress = address;
+void gpib_set_partner_pad(uchar address) {
+	controller.partner_pad = address;
 }
 
 /**
- * Get device currently controlled.
- * \returns address Address of device.
+ * Set device to be controlled.
+ * \param address Address of device.
  */
-uchar gpib_get_partner(void) {
-	return controller.partneraddress;
+void gpib_set_partner_sad(uchar address) {
+	controller.partner_sad = address;
 }
+
+
+/**
+ * Get primary address of device currently controlled.
+ * \returns primary address Address of device.
+ */
+uchar gpib_get_partner_pad(void) {
+	return controller.partner_pad;
+}
+
+/**
+ * Get secondary address of device currently controlled.
+ * \returns secondary address Address of device.
+ */
+uchar gpib_get_partner_sad(void) {
+	return controller.partner_sad;
+}
+
+
 
 /**
  * Get controller address.

@@ -24,6 +24,9 @@ Licence:	GNU General Public License
 
 #include "defs.h"
 
+/** undefined address */
+#define ADDRESS_NOT_SET 0xff
+
 /** default address to be used as partner device */
 #define DEFAULT_PARTNER_ADDRESS 0x01
 
@@ -61,6 +64,9 @@ Licence:	GNU General Public License
 /** calculate physical address from talker address */
 #define TalkerAddress2Address(adr) (adr-0x40)
 
+/** adress byte for secondary address is (adr | 0110.0000=0x60) */
+#define secondaryAdressToAdressByte(adr) (adr|0x60)
+
 /** maximum size of active partner list */
 #define MAX_PARTNER 5 
 
@@ -70,8 +76,10 @@ extern void gpib_controller_assign( uchar address );
 extern void gpib_controller_release( void );
 extern uchar gpib_cmd( uchar *bytes, int length );
 uchar gpib_serial_poll( void );
-extern void gpib_set_partner( uchar address );
-extern uchar gpib_get_partner( void );
+extern void gpib_set_partner_pad( uchar address );
+extern void gpib_set_partner_sad( uchar address );
+extern uchar gpib_get_partner_pad( void );
+extern uchar gpib_get_partner_sad( void );
 extern uchar gpib_get_address( void );
 
 // listener functions
