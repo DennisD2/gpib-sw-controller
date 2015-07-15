@@ -48,15 +48,8 @@
  * Then the following commands can be used:
  * \li .a <n> - set partner device address to value <n>. <n> is the GPIB device address, e.g. 3.
  * The partner device is the device to control.
- * \li ( .d - switch to debug shell mode. - only if define USE_DEBUGSHELL is set)
  * \li .h - print some help.
  * \li .i - print out status of some GPIB lines and current partner address.
- *
- * In debug shell mode, some low level GPIB bus commands are possible.
- * \li i - print out status of some GPIB lines
- * \li x - exit debug shell
- * The idea for the debug shell was to have an environment for extended low level access to GPIB protocol.
- * Later on, the commands in the debugshell were only a few. Maybe the debugshell is obsolete.
  * 
  * When in normal input mode, device commands can be entered. For commands that will have an answer
  * from the device under control, the answer is print out to the terminal. The controller is also
@@ -68,10 +61,6 @@
  * \section Files
  * The implementation of GPIB protocol and controller functions itself is in gpib.h and gpib.c. 
  * The controller is implemented in main_gpib.c as a big never-ending loop.
- *
- * When errors occur during
- * communication, the user can go to the debugging shell function, implemented in
- * debugshell.h and debugshell.c. to get more infos on the problem.
  *
  * Errors are usually timeouts because the device behaves different
  * then the controller expected. The timeout functionality is implemented as 16 bit timer in 
@@ -118,7 +107,6 @@
 #include "uart.h"
 #include "gpib.h"
 #include "timer16.h"
-#include "debugshell.h"
 
 /** if WRITE is defined, the "real" controller code is used, if not defined, simple
  * listener code is executed. */
@@ -220,13 +208,6 @@ int main(void) {
 					uart_puts(sbuf);
 					gpib_set_partner(partnerAddress);
 					break;
-#ifdef USE_DEBUGSHELL
-					case 'd':
-					/* enter the debug shell */
-					uart_puts("Entering debug shell\n\r");
-					debugshell();
-					break;
-#endif
 				case 'h':
 					/* print some usage infos */
 					printHelp();
@@ -464,49 +445,23 @@ uchar input_process(void) {
 	return ret;
 }
 
+#define REVISION "0.7"
+
 void printHelp() {
 #ifdef WRITE
 	sprintf(
 			buf,
-			"\n\rGPIB Controller (T/L/C) (Rev.%s) (c) spurtikus.de 2008-2012\n\r",
-			getRevision());
+			"\n\rGPIB Controller (T/L/C) (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
+			REVISION);
 	uart_puts(buf);
 #else
-	uart_puts("\n\rGPIB Listener Only (L) (Rev.%s) (c) spurtikus.de 2008-2012\n\r", getRevision());
+	uart_puts("\n\rGPIB Listener Only (L) (Rev.%s) (c) spurtikus.de 2008-2015\n\r", REVISION);
 	uart_puts(buf);
 #endif
 	uart_puts("Internal commands:\n\r");
 	uart_puts(
 			".a <device address> - set address of device to communicate with\n\r");
-#ifdef USE_DEBUGSHELL
-	uart_puts(".d - go to debug shell\n\r");
-#endif
 	uart_puts(".h - print help\n\r");
 	uart_puts(".i - dump info about GPIB lines\n\r");
 }
 
-/**
- * Extracts the revision number from a SVN revision string
- *
- * \brief utility function to extracts the revision number from a SVN revision string.
- * E.g for "$Revision: 696 $" is returned "688".
- */
-char *getRevision() {
-	char *revString = "$Revision: 696 $";
-	//char revision[6];
-	char *p = strchr(revString, ':');
-	if (!p) {
-		// huh, this seems not to be a SVN type string, just return the string itself.
-		return revString;
-	}
-	// to first digit
-	p += 2;
-	// q saves the start of first digit
-	char *q = p;
-	// jump over all digits
-	while (isdigit(*p))
-		p++;
-	// after last digit, we finish the string
-	*p = '\0';
-	return q;
-}

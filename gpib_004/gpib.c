@@ -24,7 +24,6 @@
 
 #include "gpib.h"
 #include "timer16.h"
-#include "debugshell.h"
 
 /**
  * if set, WITH_TIMEOUT means that waiting loops are interrupted by timeout.
@@ -114,8 +113,7 @@ void gpib_init(void) {
 
 /**
  * Receive a character from GPIB Bus.
- * \brief Does busy waiting until timeout value is reached. Then,
- * 		the debugshell function is entered for user handling of the problem.
+ * \brief Does busy waiting until timeout value is reached.
  *  \param _byte 	Pointer to single character; the function stores herein the character read.
  * 		When errors occur during the function, the content of the parameter (i.e. *_byte) is undefined.
  *  \returns		On any error, 0xff is returned. in this case, the value of parameter *_byte is undefined.
@@ -146,8 +144,6 @@ uchar gpib_receive(uchar* _byte) {
 	while ((PIND & _BV(G_DAV)) && (s <= timeout)) {
 		if (s == timeout) {
 			uart_puts("\n\rError: DAV timeout (1)\n\r");
-			//gpib_info();
-			//debugshell();
 			return 0xff;
 		}
 	}
@@ -169,8 +165,6 @@ uchar gpib_receive(uchar* _byte) {
 	while (!(PIND & _BV(G_DAV)) && (s <= timeout)) {
 		if (s == timeout) {
 			uart_puts("\n\rError: DAV timeout (2)\n\r");
-			//gpib_info();
-			//debugshell();
 			return 0xff;
 		}
 	}
@@ -328,8 +322,6 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 		while ((PIND & _BV(G_NDAC)) && (s <= timeout)) {
 			if (s == timeout) {
 				uart_puts("\n\rError: NDAC timeout\n\r");
-				//gpib_info();
-				//debugshell();
 				return 0xff;
 			}
 		}
@@ -395,8 +387,6 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 		while (!(PIND & _BV(G_NRFD)) && (s <= timeout)) {
 			if (s == timeout) {
 				uart_puts("\n\rError: NRFD timeout\n\r");
-				//gpib_info();
-				//debugshell();
 				return 0xff;
 			}
 		}
@@ -442,55 +432,55 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
  * print some useful info about bus state (for example value of handshake pins)
  */
 void gpib_info(void) {
-	uchar b1, b2, b3, b4, b5, b6, b7, b8;
+	uchar dav, nrfd, ndac, eoi, atn, srq, ifc, ren;
 	extern uchar buf[80];
 
-	b1 = bit_is_set(PIND,G_DAV);
-	b2 = bit_is_set(PIND,G_NRFD);
-	b3 = bit_is_set(PIND,G_NDAC);
-	b4 = bit_is_set(PIND,G_EOI);
-	b5 = bit_is_set(PIND,G_ATN);
-	b6 = bit_is_set(PIND,G_SRQ);
-	b7 = bit_is_set(PINB,G_IFC);
-	b8 = bit_is_set(PINB,G_REN);
+	dav = bit_is_set(PIND,G_DAV);
+	nrfd = bit_is_set(PIND,G_NRFD);
+	ndac = bit_is_set(PIND,G_NDAC);
+	eoi = bit_is_set(PIND,G_EOI);
+	atn = bit_is_set(PIND,G_ATN);
+	srq = bit_is_set(PIND,G_SRQ);
+	ifc = bit_is_set(PINB,G_IFC);
+	ren = bit_is_set(PINB,G_REN);
 	//d = PINA;
 	//di = d ^ 0xff;
-	if (b1 == 0x00)
-		b1 = '0';
+	if (dav == 0x00)
+		dav = '0';
 	else
-		b1 = '1';
-	if (b2 == 0x00)
-		b2 = '0';
+		dav = '1';
+	if (nrfd == 0x00)
+		nrfd = '0';
 	else
-		b2 = '1';
-	if (b3 == 0x00)
-		b3 = '0';
+		nrfd = '1';
+	if (ndac == 0x00)
+		ndac = '0';
 	else
-		b3 = '1';
-	if (b4 == 0x00)
-		b4 = '0';
+		ndac = '1';
+	if (eoi == 0x00)
+		eoi = '0';
 	else
-		b4 = '1';
-	if (b5 == 0x00)
-		b5 = '0';
+		eoi = '1';
+	if (atn == 0x00)
+		atn = '0';
 	else
-		b5 = '1';
-	if (b6 == 0x00)
-		b6 = '0';
+		atn = '1';
+	if (srq == 0x00)
+		srq = '0';
 	else
-		b6 = '1';
-	if (b7 == 0x00)
-		b7 = '0';
+		srq = '1';
+	if (ifc == 0x00)
+		ifc = '0';
 	else
-		b7 = '1';
-	if (b8 == 0x00)
-		b8 = '0';
+		ifc = '1';
+	if (ren == 0x00)
+		ren = '0';
 	else
-		b8 = '1';
+		ren = '1';
 
 	sprintf(buf,
 			"dav=%c,nrfd=%c,ndac=%c, eoi=%c, ifc=%c,ren=%c,atn=%c,srq=%c\n\r",
-			b1, b2, b3, b4, b7, b8, b5, b6);
+			dav, nrfd, ndac, eoi, ifc, ren, atn, srq);
 	uart_puts(buf);
 }
 
