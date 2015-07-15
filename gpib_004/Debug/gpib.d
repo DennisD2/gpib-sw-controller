@@ -1,5 +1,4 @@
-gpib.d gpib.o: ../gpib.c ../uart.h ../gpib.h ../defs.h ../timer16.h \
-  ../debugshell.h
+gpib.d gpib.o: ../gpib.c ../uart.h ../gpib.h ../defs.h ../timer16.h
 
 ../uart.h:
 
@@ -8,5 +7,3 @@ gpib.d gpib.o: ../gpib.c ../uart.h ../gpib.h ../defs.h ../timer16.h \
 ../defs.h:
 
 ../timer16.h:
-
-../debugshell.h:

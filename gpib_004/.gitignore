@@ -2,3 +2,7 @@
 .settings/.svn/*
 *.hex
 doc/html/.svn/*
+*/Debug/*
+Debug/*
+*.d
+*.o

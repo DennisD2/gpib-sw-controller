@@ -4,21 +4,18 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../debugshell.c \
 ../gpib.c \
 ../main_gpib.c \
 ../timer16.c \
 ../uart.c 
 
 OBJS += \
-./debugshell.o \
 ./gpib.o \
 ./main_gpib.o \
 ./timer16.o \
 ./uart.o 
 
 C_DEPS += \
-./debugshell.d \
 ./gpib.d \
 ./main_gpib.d \
 ./timer16.d \
