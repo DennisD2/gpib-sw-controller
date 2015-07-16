@@ -31,9 +31,6 @@
 /** undefined address */
 #define ADDRESS_NOT_SET 0xff
 
-/** default address to be used as partner device */
-#define DEFAULT_PARTNER_ADDRESS 0x01
-
 /** Handshake lines: DAV, NRFD and NDAC on Port D */
 #define G_DAV  PD2
 #define G_NRFD PD3

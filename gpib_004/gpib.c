@@ -225,10 +225,11 @@ void gpib_remove_partner_sad(uchar address) {
 void gpib_controller_assign(uchar address) {
 	controller.myaddress = address;
 	controller.talks = 0;
-	controller.partner.primary = DEFAULT_PARTNER_ADDRESS; // init default active partner
+	controller.partner.primary = ADDRESS_NOT_SET; // init default active partner
 	controller.partner.secondary = ADDRESS_NOT_SET;
-	/** get all partners on bus by querying them */
-	//queryPartners();
+	controller.flavour = FLAVOUR_NONE;
+	/** clear list of partners */
+	gpib_clear_partners();
 	// set up initial state of bus
 	assign_bit(DDRB, PORTB, G_IFC);
 	delay_ms(200);
@@ -453,8 +454,7 @@ void gpib_info(void) {
 			gpib_get_partner_pad(), gpib_get_partner_sad());
 	uart_puts(buf);
 
-	sprintf(buf, "Partner list\n\r");
-	uart_puts(buf);
+	uart_puts("Partner list\n\r");
 	for (int i = 0; i < MAX_PARTNER; i++) {
 		if (controller.partners[i].primary != ADDRESS_NOT_SET) {
 			sprintf(buf, "Partner address: primary: %u, secondary: %u\n\r",

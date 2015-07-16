@@ -122,7 +122,7 @@ void printHelp();
 void handle_internal_commands(uchar *commandString);
 
 /** buffers used for commands and output strings */
-uchar buf[80], cmd_buf[64];
+uchar buf[80];
 /** pointer in buffer */
 int buf_ptr = 0;
 
@@ -187,6 +187,7 @@ void handle_internal_commands(uchar *commandString) {
 uchar send_command(uchar *commandString) {
 	uchar controlString[8];
 	uchar is_query;
+
 	// send UNT and UNL commands (unlisten and untalk)
 	// effect: all talker stop talking and all listeners stop listening
 	controlString[0] = G_CMD_UNT;
@@ -215,12 +216,11 @@ uchar send_command(uchar *commandString) {
 	gpib_write(commandString, 0);
 
 	// check if query or command only
-	// all queries contain a '?'
 	if (strchr((char*) commandString, '?') != NULL) {
 		uart_puts("Query. Will check for answer.\n\r");
 		is_query = 1;
 	} else {
-		uart_puts("Command only.\n\r> ");
+		uart_puts("Command only.\n\r");
 		is_query = 0;
 	}
 	return is_query;
@@ -271,6 +271,50 @@ void receiveAnswer() {
 }
 
 /**
+ * Check if a SRQ occured
+ */
+uchar srq_occured(int* old_time) {
+	uchar srq = 0;
+	if (*old_time == 0) {
+		// old_time value initialization on first call with value s
+		*old_time = s;
+	} else {
+		if (s > *old_time) {
+			// some time has passed - check if srq was set
+			srq = bit_is_clear(PIND, G_SRQ);
+			if (srq)
+				uart_puts("\n\rSRQ detected.\n\r");
+		}
+	}
+	return srq;
+}
+
+/**
+ * Handles SRQs by doing serial poll
+ *
+ */
+uchar handle_srq(uchar *buf, int *buf_ptr) {
+	uchar command_ready = 0;
+
+	// handle srq with serial poll
+	gpib_set_partner_pad(gpib_serial_poll());
+
+	if (gpib_get_flavour() == FLAVOUR_TEK) {
+		// Tek: check status for reason
+		buf[0] = 'E';
+		buf[1] = 'V';
+		buf[2] = 'E';
+		buf[3] = 'N';
+		buf[4] = 'T';
+		buf[5] = '?';
+		buf[6] = '\0';
+		*buf_ptr = 6;
+		command_ready = 1;
+	}
+	return command_ready;
+}
+
+/**
  * GPIB controller main function
  * \brief Implementation of GPIB controller. Reads a command from RS232, sends it via bus.
  * If The command contains a '?', an answer from the device is expected and read in. The
@@ -282,7 +326,6 @@ int main(void) {
 	uchar is_query = 0;
 	uchar command_ready = 0;
 	uchar do_prompt = 1;
-	uchar srq;
 
 	/*
 	 *  Initialize UART library, pass baudrate and avr cpu clock 
@@ -292,13 +335,6 @@ int main(void) {
 	/*
 	 * now enable interrupt, since UART and TIMER library is interrupt controlled
 	 */sei();
-
-	/** clear secondary address */
-	gpib_set_partner_sad(ADDRESS_NOT_SET);
-	/** clear list of partners */
-	gpib_clear_partners();
-	/** init flavour */
-	gpib_set_flavour(FLAVOUR_NONE);
 
 	/** print some usage infos */
 	printHelp();
@@ -333,84 +369,59 @@ int main(void) {
 		if (!command_ready)
 			command_ready = input_process();
 
-		// check for internal command
 		if (command_ready) {
-			// all internal cmds start with a '.'
-			if (buf[0] == '.') {
-				uart_puts("\n\rInternal command: ");
-				uart_puts((char*) buf);
-				uart_puts("\n\r");
-				// reset local vars for command string reading
-				buf_ptr = 0;
-				command_ready = 0;
-				// handle commands
-				handle_internal_commands(buf);
-				do_prompt = 1;
-			}
+			uart_puts("\n\r");
 		}
 
-		if (command_ready == 1 && (gpib_get_partner_pad() == ADDRESS_NOT_SET)) {
-			uart_puts("\n\rDevice address is not set. Will not send commands.");
-			uart_puts("\n\r");
+		// check for internal commands
+		if (command_ready && buf[0] == '.') {
+			// all internal cmds start with a '.'
+			//uart_puts("\n\rInternal command: ");
+			//uart_puts((char*) buf);
+			//uart_puts("\n\r");
+			handle_internal_commands(buf);
+			// reset local vars for command string reading
+			buf_ptr = 0;
+			command_ready = 0;
+			do_prompt = 1;
+			is_query = 0;
+		}
+
+		// GPIB command. Check if a partner was defined.
+		if (command_ready && (gpib_get_partner_pad() == ADDRESS_NOT_SET)) {
+			uart_puts("Device address is not set. Will not send commands.\n\r");
+			// reset local vars for command string reading
 			command_ready = 0;
 			buf_ptr = 0;
 			do_prompt = 1;
 		}
 
-		// if a command was entered, send it to listeners
+		// GPIB command and valid partner. Send the command.
 		if (command_ready) {
+			//uart_puts("\n\rGPIB command: ");
+			//uart_puts((char*) buf);
+			//uart_puts("\n\r");
 			is_query = send_command(buf);
 			// reset local vars for command string reading
-			buf_ptr = 0;
 			command_ready = 0;
+			buf_ptr = 0;
+			do_prompt = 1;
 		}
 
 		// if we sent a query, read the answer
 		if (is_query) {
 			receiveAnswer();
-			if (gpib_get_flavour() == FLAVOUR_TEK) {
-				/// Tek: tek1241 is not sending cr,lf at command end, so create it always itself
-				uart_puts("\n\r");
-				uart_puts("> ");
-			}
 			// reset for next command
 			is_query = 0;
+			// some devices do not send cr,lf at command end, so create it always itself
+			uart_puts("\n\r");
+			do_prompt = 1;
 		}
 
 		// SRQ detection - do this every time when time value s has changed
 		// s is incremented every second. So we check once a second.
-		srq = 0;
-		if (old_time == 0) {
-			// old_time value initialization on first call with value s
-			old_time = s;
-		} else {
-			if (s > old_time) {
-				// some time has passed - check if srq was set
-				srq = bit_is_clear(PIND, G_SRQ);
-				if (srq)
-					uart_puts("\n\rSRQ detected.\n\r");
-			}
-		}
-
-		// SRQ handling by doing serial poll
-		if (srq) {
-			// reset srq for next call
-			srq = 0;
-			// handle srq with serial poll
-			gpib_set_partner_pad(gpib_serial_poll());
-
-			if (gpib_get_flavour() == FLAVOUR_TEK) {
-				// Tek: check status for reason
-				buf[0] = 'E';
-				buf[1] = 'V';
-				buf[2] = 'E';
-				buf[3] = 'N';
-				buf[4] = 'T';
-				buf[5] = '?';
-				buf[6] = '\0';
-				buf_ptr = 6;
-				command_ready = 1;
-			}
+		if (srq_occured(&old_time)) {
+			command_ready = handle_srq(buf, &buf_ptr);
 		}
 	}
 #else
