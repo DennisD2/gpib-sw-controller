@@ -119,6 +119,8 @@
 
 uchar input_process(void);
 void printHelp();
+void handle_internal_commands(uchar *commandString);
+
 
 /** buffers used for commands and output strings */
 uchar buf[80], cmd_buf[64];
@@ -129,6 +131,147 @@ int buf_ptr = 0;
 int rs232_remote_echo = 1;
 
 /**
+ * Handles builtin commands.
+ */
+void handle_internal_commands(uchar *commandString) {
+	uchar sbuf[32];
+	uchar val;
+
+	switch (buf[1]) {
+	case 'a':
+		/* set partner address */
+		val = atoi((char*) (&(buf[2])));
+		sprintf(sbuf, "Set partner address to %u\n\r", val);
+		uart_puts(sbuf);
+		gpib_set_partner_pad(val);
+		break;
+	case 's':
+		/* set partner secondary address */
+		val = atoi((char*) (&(buf[2])));
+		sprintf(sbuf, "Set partner secondary address to %u\n\r", val);
+		uart_puts(sbuf);
+		gpib_set_partner_sad(val);
+		break;
+	case '+':
+		/* add device */
+		val = atoi((char*) (&(buf[2])));
+		sprintf(sbuf, "Added device with address %u\n\r", val);
+		uart_puts(sbuf);
+		gpib_add_partner_sad(val);
+		break;
+	case '-':
+		/* add device */
+		val = atoi((char*) (&(buf[2])));
+		sprintf(sbuf, "Removed device with address %u\n\r", val);
+		uart_puts(sbuf);
+		gpib_remove_partner_sad(val);
+		break;
+	case 'h':
+		/* print some usage infos */
+		printHelp();
+		break;
+	case 'i':
+		gpib_info();
+		break;
+	default:
+		uart_puts("unknown command\n\r");
+		printHelp();
+		break;
+	}
+}
+
+/**
+ * Sends a command.
+ *
+ * Returns 1 if command is a query, 0 otherwise.
+ */
+uchar send_command(uchar *commandString) {
+	uchar controlString[8];
+	uchar is_query;
+	// send UNT and UNL commands (unlisten and untalk)
+	// effect: all talker stop talking and all listeners stop listening
+	controlString[0] = G_CMD_UNT;
+	gpib_cmd(controlString, 1);
+	controlString[0] = G_CMD_UNL;
+	gpib_cmd(controlString, 1);
+
+	// set device to listener mode
+	controlString[0] = address2ListenerAddress(gpib_get_partner_pad());
+	gpib_cmd(controlString, 1);
+	// send secondary address if required
+	if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
+		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
+		gpib_cmd(controlString, 1);
+	}
+
+	// set myself (controller) to talker mode
+	controlString[0] = address2TalkerAddress(gpib_get_address());
+	gpib_cmd(controlString, 1);
+
+	// put out command to listeners
+	uart_puts("\n\rcommand: ");
+	uart_puts((char*) commandString);
+	uart_puts("\n\r");
+	// gpib bus write
+	gpib_write(commandString, 0);
+
+	// check if query or command only
+	// all queries contain a '?'
+	if (strchr((char*) commandString, '?') != NULL) {
+		uart_puts("Query. Will check for answer.\n\r");
+		is_query = 1;
+	} else {
+		uart_puts("Command only.\n\r> ");
+		is_query = 0;
+	}
+	return is_query;
+}
+
+/**
+ * Receives answer after command was sent.
+ */
+void receiveAnswer() {
+	uchar controlString[8];
+	uchar b, e;
+
+	// UNT and UNL
+	controlString[0] = G_CMD_UNT;
+	gpib_cmd(controlString, 1);
+	controlString[0] = G_CMD_UNL;
+	gpib_cmd(controlString, 1);
+
+	// set myself (controller) to listener mode
+	controlString[0] = address2ListenerAddress(gpib_get_address());
+	gpib_cmd(controlString, 1);
+
+	// set device to talker mode
+	controlString[0] = address2TalkerAddress(gpib_get_partner_pad());
+	gpib_cmd(controlString, 1);
+	// secondary address if required
+	if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
+		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
+		gpib_cmd(controlString, 1);
+	}
+
+	// read the answer until EOI is detected (then e becomes true)
+	do {
+		// gpib bus receive
+		e = gpib_receive(&b);
+		// write out character
+		uart_putc(b);
+		//sprintf((char*)buf,"%02x - %c\n\r", b, b);
+		//uart_puts((char*)buf);
+	} while (!e);
+
+	// send UNT and UNL commands (unlisten and untalk)
+	// effect: all talker stop talking and all listeners stop listening
+	controlString[0] = G_CMD_UNT;
+	gpib_cmd(controlString, 1);
+	controlString[0] = G_CMD_UNL;
+	gpib_cmd(controlString, 1);
+}
+
+/**
  * GPIB controller main function
  * \brief Implementation of GPIB controller. Reads a command from RS232, sends it via bus.
  * If The command contains a '?', an answer from the device is expected and read in. The
@@ -136,14 +279,11 @@ int rs232_remote_echo = 1;
  * 
  */
 int main(void) {
-	uchar b, e;
-	uchar val;
 	int old_time = 0;
-	uchar srq;
 	uchar is_query = 0;
 	uchar command_ready = 0;
-	char sbuf[32];
 	uchar do_prompt = 1;
+	uchar srq;
 
 	/*
 	 *  Initialize UART library, pass baudrate and avr cpu clock 
@@ -154,13 +294,13 @@ int main(void) {
 	 * now enable interrupt, since UART and TIMER library is interrupt controlled
 	 */sei();
 
-	/** print some usage infos */
-	printHelp();
-
 	/** clear secondary address */
 	gpib_set_partner_sad(ADDRESS_NOT_SET);
 	/** clear list of partners */
 	gpib_clear_partners();
+
+	/** print some usage infos */
+	printHelp();
 
 #ifdef WRITE
 	/*
@@ -202,51 +342,8 @@ int main(void) {
 				// reset local vars for command string reading
 				buf_ptr = 0;
 				command_ready = 0;
-
-				switch (buf[1]) {
-				case 'a':
-					/* set partner address */
-					val = atoi((char*) (&(buf[2])));
-					sprintf(sbuf, "Set partner address to %u\n\r", val);
-					uart_puts(sbuf);
-					gpib_set_partner_pad(val);
-					break;
-				case 's':
-					/* set partner secondary address */
-					val = atoi((char*) (&(buf[2])));
-					sprintf(sbuf, "Set partner secondary address to %u\n\r",
-							val);
-					uart_puts(sbuf);
-					gpib_set_partner_sad(val);
-					break;
-				case '+':
-					/* add device */
-					val = atoi((char*) (&(buf[2])));
-					sprintf(sbuf, "Added device with address %u\n\r",
-							val);
-					uart_puts(sbuf);
-					gpib_add_partner_sad(val);
-					break;
-				case '-':
-					/* add device */
-					val = atoi((char*) (&(buf[2])));
-					sprintf(sbuf, "Removed device with address %u\n\r",
-							val);
-					uart_puts(sbuf);
-					gpib_remove_partner_sad(val);
-					break;
-				case 'h':
-					/* print some usage infos */
-					printHelp();
-					break;
-				case 'i':
-					gpib_info();
-					break;
-				default:
-					uart_puts("unknown command\n\r");
-					printHelp();
-					break;
-				}
+				// handle commands
+				handle_internal_commands(buf);
 				do_prompt = 1;
 			}
 		}
@@ -261,46 +358,7 @@ int main(void) {
 
 		// if a command was entered, send it to listeners
 		if (command_ready) {
-			// send UNT and UNL commands (unlisten and untalk)
-			// effect: all talker stop talking and all listeners stop listening
-			cmd_buf[0] = G_CMD_UNT;
-			gpib_cmd(cmd_buf, 1);
-			cmd_buf[0] = G_CMD_UNL;
-			gpib_cmd(cmd_buf, 1);
-
-			// set device to listener mode
-			//partnerAddress = address2ListenerAddress(gpib_get_partner_pad());
-			cmd_buf[0] = address2ListenerAddress(gpib_get_partner_pad());
-			gpib_cmd(cmd_buf, 1);
-
-			// send secondary address if required
-			if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
-				cmd_buf[0] = secondaryAdressToAdressByte(
-						gpib_get_partner_sad());
-				gpib_cmd(cmd_buf, 1);
-			}
-
-			// set myself (controller) to talker mode
-			cmd_buf[0] = address2TalkerAddress(gpib_get_address());
-			gpib_cmd(cmd_buf, 1);
-
-			// put out command to listeners
-			uart_puts("\n\rcommand: ");
-			uart_puts((char*) buf);
-			uart_puts("\n\r");
-			// gpib bus write
-			gpib_write(buf, 0);
-
-			// check if query or command only
-			// all queries contain a '?'
-			if (strchr((char*) buf, '?') != NULL) {
-				uart_puts("Query. Will check for answer.\n\r");
-				is_query = 1;
-			} else {
-				uart_puts("Command only.\n\r> ");
-				is_query = 0;
-			}
-
+			is_query = send_command(buf);
 			// reset local vars for command string reading
 			buf_ptr = 0;
 			command_ready = 0;
@@ -308,43 +366,8 @@ int main(void) {
 
 		// if we sent a query, read the answer
 		if (is_query) {
-			// UNT and UNL
-			cmd_buf[0] = G_CMD_UNT;
-			gpib_cmd(cmd_buf, 1);
-			cmd_buf[0] = G_CMD_UNL;
-			gpib_cmd(cmd_buf, 1);
-
-			// set myself (controller) to listener mode
-			cmd_buf[0] = address2ListenerAddress(gpib_get_address());
-			gpib_cmd(cmd_buf, 1);
-
-			// set device (oszi) to talker mode
-			cmd_buf[0] = address2TalkerAddress(gpib_get_partner_pad());
-			gpib_cmd(cmd_buf, 1);
-			// secondary address if required
-			if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
-				cmd_buf[0] = secondaryAdressToAdressByte(
-						gpib_get_partner_sad());
-				gpib_cmd(cmd_buf, 1);
-			}
-
-			// read the answer until EOI is detected (then e becomes true)
-			do {
-				// gpib bus receive
-				e = gpib_receive(&b);
-				// write out character
-				uart_putc(b);
-				//sprintf((char*)buf,"%02x - %c\n\r", b, b);
-				//uart_puts((char*)buf);
-			} while (!e);
-
-			// send UNT and UNL commands (unlisten and untalk)
-			// effect: all talker stop talking and all listeners stop listening
-			cmd_buf[0] = G_CMD_UNT;
-			gpib_cmd(cmd_buf, 1);
-			cmd_buf[0] = G_CMD_UNL;
-			gpib_cmd(cmd_buf, 1);
-
+			receiveAnswer();
+			// TODO next two lines are Tek(1241?) flavour
 			uart_puts("\n\r"); // tek1241 is not sending cr,lf at command end, so create it always itself
 			uart_puts("> ");
 			// reset for next command
@@ -492,8 +515,10 @@ void printHelp() {
 #endif
 	uart_puts("Internal commands:\n\r");
 	uart_puts(".a <device address> - set primary address of remote device\n\r");
-	uart_puts(".+ <n> - add partner device address to list of known devices.\n\r");
-	uart_puts(".- <n> - remove partner device address from list of known devices.\n\r");
+	uart_puts(
+			".+ <n> - add partner device address to list of known devices.\n\r");
+	uart_puts(
+			".- <n> - remove partner device address from list of known devices.\n\r");
 	uart_puts(
 			".s <device address> - set secondary address of of remote device\n\r");
 	uart_puts(".h - print help\n\r");
