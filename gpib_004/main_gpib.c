@@ -32,15 +32,15 @@
  * 
  * \section GPIB bus setup
  * Set up GPIB bus addresses for your devices. The setup is done in/at the device. Check device
- * manual.
+ * manual. The controller can handle primary only and primary/secondary addresses.
  * 
- * \section Ordner of switching on devices on bus
+ * \section Order of switching on devices on bus
  * This is a little bit tricky. Best order is to switch on controller, and after that switch on the
  * devices.
  *
- * The software assumes two devices with addresses
- * 0x01 and 0x02. The controller itself has address 0x00. You can change number of devices
- * and assumed addresses in function gpib_controller_assign().
+ * The software keeps a list of "known devices". These are devices that are included in a
+ * serial poll (after a SRQ). You must add devices manually to the list. If a device not in the
+ * list generates a SRQ this SRQ is not correctly handled.
  * 
  * \section Software
  * This code implements a kind of a GPIB controller. It understands a few built in commands.
@@ -56,9 +56,14 @@
  * When in normal input mode, device commands can be entered. For commands that will have an answer
  * from the device under control, the answer is print out to the terminal. The controller is also
  * able to do a serial poll.
- * The code was tested with a Tektronix 2432a oscilloscope and with a Tektronix 1241 logic analyzer.
- * The implementation may be specific to Tektronix and may not work with other devices.  
- * But it's worth a try.
+ * The code was tested with the following devices:
+ *
+ * \li Tektronix 2432a oscilloscope
+ * \li Tektronix 1241 logic analyzer
+ * \li HP3478 multimeter
+ * \li HP75000 VXI mainframe with several modules installed (uses secondary addresses)
+ *
+ * The implementation may not work well with your device.But it's worth a try :-)
  * 
  * \section Files
  * The implementation of GPIB protocol and controller functions itself is in gpib.h and gpib.c. 
@@ -91,6 +96,14 @@
  * \li dt?
  * \li acqmem?
  * 
+ * \subsection HP3768
+ * \li H1?
+ *
+ * \subsection HP75000 / E1300 board using secondary address feature
+ * \li *rst
+ * \li *idn?
+ * \li SYST:TIME?
+ *
  * \section Licence
  * This code can be used according to GNU General Public License.
  * 
