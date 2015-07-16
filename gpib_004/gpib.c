@@ -31,17 +31,22 @@
  */
 #define WITH_TIMEOUT
 
+/** address type */
+typedef struct {
+	uchar primary;
+	uchar secondary;
+} address_t;
+
 /** Controller object data */
 typedef struct {
 	uchar myaddress; /**< controller address,usually 0x00 */
-	uchar partner_pad; /**< currently addressed partner device */
-	uchar partner_sad;
+	address_t partner; /**< currently addressed partner device */
 	uchar talks; /**< true while controller is talker */
-	uchar partners[MAX_PARTNER]; /**< list of active partners */
+	address_t partners[MAX_PARTNER]; /**< list of active partners */
 } gpib_controller_t;
 
 /** controller object. Not to be accessed outside gpib.c */
-gpib_controller_t controller;
+static gpib_controller_t controller;
 
 uchar _gpib_write(uchar *bytes, int length, uchar attention);
 
@@ -176,7 +181,7 @@ uchar gpib_receive(uchar* _byte) {
 	assign_bit(DDRD, PORTD, G_NDAC);
 
 	// check if last byte of transmission
-	eoi = bit_is_clear(PIND,G_EOI);
+	eoi = bit_is_clear(PIND, G_EOI);
 
 	*_byte = byte;
 
@@ -192,10 +197,17 @@ uchar gpib_receive(uchar* _byte) {
  * TODO: the function does not a query for now, but just assumes that there are two devices
  * with addresses 0x01 and 0x02. This is very limited but currently ok for me.
  */
-void queryPartners() {
-	controller.partners[0] = 0x02;
-	//controller.partners[1] = 0x01;
-	controller.partners[3] = 0x00; // end value is 0x00
+//void queryPartners() {
+//	controller.partners[0] = 0x02;
+//	//controller.partners[1] = 0x01;
+//	controller.partners[3] = 0x00; // end value is 0x00
+//}
+uchar gpib_add_partner_sad(uchar address) {
+
+}
+
+void gpib_remove_partner_sad(uchar address) {
+
 }
 
 /**
@@ -212,17 +224,16 @@ void queryPartners() {
 void gpib_controller_assign(uchar address) {
 	controller.myaddress = address;
 	controller.talks = 0;
-	controller.partner_pad = DEFAULT_PARTNER_ADDRESS; // init default active partner
-	controller.partner_sad = ADDRESS_NOT_SET;
+	controller.partner.primary = DEFAULT_PARTNER_ADDRESS; // init default active partner
+	controller.partner.secondary = ADDRESS_NOT_SET;
 	/** get all partners on bus by querying them */
-	queryPartners();
-
+	//queryPartners();
 	// set up initial state of bus
-	assign_bit( DDRB, PORTB, G_IFC);
+	assign_bit(DDRB, PORTB, G_IFC);
 	delay_ms(200);
-	release_bit( DDRB, PORTB, G_IFC);
+	release_bit(DDRB, PORTB, G_IFC);
 	// set up all devices for remote control
-	assign_bit( DDRB, PORTB, G_REN);
+	assign_bit(DDRB, PORTB, G_REN);
 
 	// DCL - device clear for all devices on bus
 	cmd_buf[0] = G_CMD_DCL;
@@ -234,11 +245,11 @@ void gpib_controller_assign(uchar address) {
  */
 void gpib_controller_release(void) {
 	// set up initial state of bus
-	assign_bit( DDRB, PORTB, G_IFC);
+	assign_bit(DDRB, PORTB, G_IFC);
 	delay_ms(200);
-	release_bit( DDRB, PORTB, G_IFC);
+	release_bit(DDRB, PORTB, G_IFC);
 	// set up all devices for local control
-	release_bit( DDRB, PORTB, G_REN);
+	release_bit(DDRB, PORTB, G_REN);
 }
 
 /**
@@ -282,7 +293,7 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 	if (attention) {
 		//uart_puts("\n\rgpib_controller_write()\n\r");
 		// assign ATN for commands
-		assign_bit( DDRD, PORTD, G_ATN);
+		assign_bit(DDRD, PORTD, G_ATN);
 	}
 
 	if (length == 0) {
@@ -421,7 +432,7 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 
 	if (attention) {
 		// assign ATN for commands
-		release_bit( DDRD, PORTD, G_ATN);
+		release_bit(DDRD, PORTD, G_ATN);
 	}
 
 	// clear talk state.Controller does not talk anymore.
@@ -437,14 +448,27 @@ void gpib_info(void) {
 	uchar dav, nrfd, ndac, eoi, atn, srq, ifc, ren;
 	extern uchar buf[80];
 
-	dav = bit_is_set(PIND,G_DAV);
-	nrfd = bit_is_set(PIND,G_NRFD);
-	ndac = bit_is_set(PIND,G_NDAC);
-	eoi = bit_is_set(PIND,G_EOI);
-	atn = bit_is_set(PIND,G_ATN);
-	srq = bit_is_set(PIND,G_SRQ);
-	ifc = bit_is_set(PINB,G_IFC);
-	ren = bit_is_set(PINB,G_REN);
+	sprintf(buf, "Partner address: primary: %u, secondary: %u\n\r",
+			gpib_get_partner_pad(), gpib_get_partner_sad());
+	uart_puts(buf);
+
+	sprintf(buf, "Partner list\n\r");
+	uart_puts(buf);
+	for (int i = 0; i < MAX_PARTNER; i++) {
+		if (controller.partners[i].primary != ADDRESS_NOT_SET) {
+			sprintf(buf, "Partner address: primary: %u, secondary: %u\n\r",
+					controller.partners[i].primary, controller.partners[i].secondary);
+		}
+	}
+
+	dav = bit_is_set(PIND, G_DAV);
+	nrfd = bit_is_set(PIND, G_NRFD);
+	ndac = bit_is_set(PIND, G_NDAC);
+	eoi = bit_is_set(PIND, G_EOI);
+	atn = bit_is_set(PIND, G_ATN);
+	srq = bit_is_set(PIND, G_SRQ);
+	ifc = bit_is_set(PINB, G_IFC);
+	ren = bit_is_set(PINB, G_REN);
 	//d = PINA;
 	//di = d ^ 0xff;
 	if (dav == 0x00)
@@ -493,7 +517,7 @@ void gpib_info(void) {
  */
 uchar gpib_serial_poll(void) {
 	uchar b, e;
-	uchar address = 0, found = 0, foundPhysical=0;
+	uchar address = 0, found = 0, foundPhysical = 0;
 	int i;
 
 	// send UNT and UNL commands (unlisten and untalk)
@@ -512,10 +536,11 @@ uchar gpib_serial_poll(void) {
 	//uart_puts("after SPE\r\n");
 
 	// searching for SRQ emitter in a loop ...
-	for (i = 0; (controller.partners[i] != 0x00) && !found; i++) {
+	for (i = 0; (controller.partners[i].primary != 0x00) && !found; i++) {
 
 		// set partner to talker mode
-		address = address2TalkerAddress( controller.partners[i] );
+		address = address2TalkerAddress(controller.partners[i].primary);
+		// TODO: handle secondary address
 		cmd_buf[0] = address;
 		//uart_puts("before talker address write\r\n");
 		gpib_cmd(cmd_buf, 1);
@@ -526,7 +551,8 @@ uchar gpib_serial_poll(void) {
 		e = gpib_receive(&b);
 		//uart_puts("after status byte receive\r\n");
 		// status byte is now in b
-		sprintf((char*) cmd_buf, "Status byte from device 0x%02x (physical address) = 0x%02x\n\r",
+		sprintf((char*) cmd_buf,
+				"Status byte from device 0x%02x (physical address) = 0x%02x\n\r",
 				TalkerAddress2Address(address), b);
 		uart_puts((char*) cmd_buf);
 
@@ -542,8 +568,7 @@ uchar gpib_serial_poll(void) {
 			foundPhysical = TalkerAddress2Address(found);
 			// bit 6 of status byte of SRQ emitter is 1
 			// when reading status byte from emitter, he releases SRQ line (may also be tested here)
-			sprintf(
-					(char*) cmd_buf,
+			sprintf((char*) cmd_buf,
 					"SRQ emitter is device = 0x%02x (physical address)\n\r",
 					foundPhysical);
 			uart_puts((char*) cmd_buf);
@@ -566,7 +591,7 @@ uchar gpib_serial_poll(void) {
  * \param address Address of device.
  */
 void gpib_set_partner_pad(uchar address) {
-	controller.partner_pad = address;
+	controller.partner.primary = address;
 }
 
 /**
@@ -574,16 +599,15 @@ void gpib_set_partner_pad(uchar address) {
  * \param address Address of device.
  */
 void gpib_set_partner_sad(uchar address) {
-	controller.partner_sad = address;
+	controller.partner.secondary = address;
 }
-
 
 /**
  * Get primary address of device currently controlled.
  * \returns primary address Address of device.
  */
 uchar gpib_get_partner_pad(void) {
-	return controller.partner_pad;
+	return controller.partner.primary;
 }
 
 /**
@@ -591,10 +615,8 @@ uchar gpib_get_partner_pad(void) {
  * \returns secondary address Address of device.
  */
 uchar gpib_get_partner_sad(void) {
-	return controller.partner_sad;
+	return controller.partner.secondary;
 }
-
-
 
 /**
  * Get controller address.
@@ -602,4 +624,10 @@ uchar gpib_get_partner_sad(void) {
  */
 uchar gpib_get_address(void) {
 	return controller.myaddress;
+}
+
+void gpib_clear_partners() {
+	for (int i = 0; i < MAX_PARTNER; i++) {
+		controller.partners[i].primary = ADDRESS_NOT_SET;
+	}
 }

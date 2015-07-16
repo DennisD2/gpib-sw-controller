@@ -27,7 +27,7 @@
  * To run the software, it must be compiled according to your hardware.
  * See gpib.h for the assignments of AVR port lines to GPIB interface lines.
  * You can change the defines in gpib.h according to your hardware.
- * I used for testing the AVR board from pollin priced ca. 15 Euro. Every other board
+ * I used for testing the AVR board from Pollin priced ca. 15 Euro. Every other board
  * is possible as long as you have enough port lines available. 16 ports are required.
  * 
  * \section GPIB bus setup
@@ -45,9 +45,11 @@
  * \section Software
  * This code implements a kind of a GPIB controller. It understands a few built in commands.
  * The hardware should be connected via GPIB interface, the controlling computer/terminal via RS232.
- * Then the following commands can be used:
- * \li .a <n> - set partner device address to value <n>. <n> is the GPIB device address, e.g. 3.
+ * Then the following commands can be used. <n> is a GPIB device address, e.g. 3.:
+ * \li .a <n> - set partner device address to value <n>.
  * The partner device is the device to control.
+ * \li .+ <n> - add partner device address to list of known devices. Used for SRQ handling.
+ * \li .- <n> - remove partner device address from list of known devices. Used for SRQ handling.
  * \li .h - print some help.
  * \li .i - print out status of some GPIB lines and current partner address.
  * 
@@ -135,7 +137,7 @@ int rs232_remote_echo = 1;
  */
 int main(void) {
 	uchar b, e;
-	uchar partnerAddress = ADDRESS_NOT_SET; // 0xff means NO address assigned
+	uchar val;
 	int old_time = 0;
 	uchar srq;
 	uchar is_query = 0;
@@ -155,7 +157,10 @@ int main(void) {
 	/** print some usage infos */
 	printHelp();
 
+	/** clear secondary address */
 	gpib_set_partner_sad(ADDRESS_NOT_SET);
+	/** clear list of partners */
+	gpib_clear_partners();
 
 #ifdef WRITE
 	/*
@@ -201,27 +206,40 @@ int main(void) {
 				switch (buf[1]) {
 				case 'a':
 					/* set partner address */
-					partnerAddress = atoi((char*) (&(buf[2])));
-					sprintf(sbuf, "Set partner address to %u\n\r",
-							partnerAddress);
+					val = atoi((char*) (&(buf[2])));
+					sprintf(sbuf, "Set partner address to %u\n\r", val);
 					uart_puts(sbuf);
-					gpib_set_partner_pad(partnerAddress);
+					gpib_set_partner_pad(val);
 					break;
 				case 's':
 					/* set partner secondary address */
-					partnerAddress = atoi((char*) (&(buf[2])));
+					val = atoi((char*) (&(buf[2])));
 					sprintf(sbuf, "Set partner secondary address to %u\n\r",
-							partnerAddress);
+							val);
 					uart_puts(sbuf);
-					gpib_set_partner_sad(partnerAddress);
+					gpib_set_partner_sad(val);
+					break;
+				case '+':
+					/* add device */
+					val = atoi((char*) (&(buf[2])));
+					sprintf(sbuf, "Added device with address %u\n\r",
+							val);
+					uart_puts(sbuf);
+					gpib_add_partner_sad(val);
+					break;
+				case '-':
+					/* add device */
+					val = atoi((char*) (&(buf[2])));
+					sprintf(sbuf, "Removed device with address %u\n\r",
+							val);
+					uart_puts(sbuf);
+					gpib_remove_partner_sad(val);
 					break;
 				case 'h':
 					/* print some usage infos */
 					printHelp();
 					break;
 				case 'i':
-					sprintf(buf, "Partner adress: primary: %u, secondary: %u\n\r", gpib_get_partner_pad(), gpib_get_partner_sad());
-					uart_puts(buf);
 					gpib_info();
 					break;
 				default:
@@ -233,9 +251,8 @@ int main(void) {
 			}
 		}
 
-		if (command_ready == 1 && (partnerAddress == ADDRESS_NOT_SET)) {
-			uart_puts(
-					"\n\rDevice address is not set. Please set the device address before sending commands.");
+		if (command_ready == 1 && (gpib_get_partner_pad() == ADDRESS_NOT_SET)) {
+			uart_puts("\n\rDevice address is not set. Will not send commands.");
 			uart_puts("\n\r");
 			command_ready = 0;
 			buf_ptr = 0;
@@ -251,21 +268,20 @@ int main(void) {
 			cmd_buf[0] = G_CMD_UNL;
 			gpib_cmd(cmd_buf, 1);
 
-			// set device (oszi) to listener mode
-			partnerAddress = address2ListenerAddress(gpib_get_partner_pad());
-			cmd_buf[0] = partnerAddress;
+			// set device to listener mode
+			//partnerAddress = address2ListenerAddress(gpib_get_partner_pad());
+			cmd_buf[0] = address2ListenerAddress(gpib_get_partner_pad());
 			gpib_cmd(cmd_buf, 1);
-			// secondary address if required
+
+			// send secondary address if required
 			if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
-				partnerAddress = secondaryAdressToAdressByte(
+				cmd_buf[0] = secondaryAdressToAdressByte(
 						gpib_get_partner_sad());
-				cmd_buf[0] = partnerAddress;
 				gpib_cmd(cmd_buf, 1);
 			}
 
 			// set myself (controller) to talker mode
-			partnerAddress = address2TalkerAddress(gpib_get_address());
-			cmd_buf[0] = partnerAddress;
+			cmd_buf[0] = address2TalkerAddress(gpib_get_address());
 			gpib_cmd(cmd_buf, 1);
 
 			// put out command to listeners
@@ -299,19 +315,16 @@ int main(void) {
 			gpib_cmd(cmd_buf, 1);
 
 			// set myself (controller) to listener mode
-			partnerAddress = address2ListenerAddress(gpib_get_address());
-			cmd_buf[0] = partnerAddress;
+			cmd_buf[0] = address2ListenerAddress(gpib_get_address());
 			gpib_cmd(cmd_buf, 1);
 
 			// set device (oszi) to talker mode
-			partnerAddress = address2TalkerAddress(gpib_get_partner_pad());
-			cmd_buf[0] = partnerAddress;
+			cmd_buf[0] = address2TalkerAddress(gpib_get_partner_pad());
 			gpib_cmd(cmd_buf, 1);
 			// secondary address if required
 			if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
-				partnerAddress = secondaryAdressToAdressByte(
+				cmd_buf[0] = secondaryAdressToAdressByte(
 						gpib_get_partner_sad());
-				cmd_buf[0] = partnerAddress;
 				gpib_cmd(cmd_buf, 1);
 			}
 
@@ -358,8 +371,7 @@ int main(void) {
 			// reset srq for next call
 			srq = 0;
 			// handle srq with serial poll
-			partnerAddress = gpib_serial_poll();
-			gpib_set_partner_pad(partnerAddress);
+			gpib_set_partner_pad(gpib_serial_poll());
 			// check status for reason
 			buf[0] = 'E';
 			buf[1] = 'V';
@@ -480,6 +492,8 @@ void printHelp() {
 #endif
 	uart_puts("Internal commands:\n\r");
 	uart_puts(".a <device address> - set primary address of remote device\n\r");
+	uart_puts(".+ <n> - add partner device address to list of known devices.\n\r");
+	uart_puts(".- <n> - remove partner device address from list of known devices.\n\r");
 	uart_puts(
 			".s <device address> - set secondary address of of remote device\n\r");
 	uart_puts(".h - print help\n\r");
