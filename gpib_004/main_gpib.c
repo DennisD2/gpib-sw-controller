@@ -208,19 +208,19 @@ uchar send_command(uchar *commandString) {
 	controlString[0] = address2TalkerAddress(gpib_get_address());
 	gpib_cmd(controlString, 1);
 
-	// put out command to listeners
-	uart_puts("\n\rcommand: ");
-	uart_puts((char*) commandString);
-	uart_puts("\n\r");
+	//uart_puts("\n\rcommand: ");
+	//uart_puts((char*) commandString);
+	//uart_puts("\n\r");
 	// gpib bus write
+	// put out command to listeners
 	gpib_write(commandString, 0);
 
 	// check if query or command only
 	if (strchr((char*) commandString, '?') != NULL) {
-		uart_puts("Query. Will check for answer.\n\r");
+		//uart_puts("Query. Will check for answer.\n\r");
 		is_query = 1;
 	} else {
-		uart_puts("Command only.\n\r");
+		//uart_puts("Command only.\n\r");
 		is_query = 0;
 	}
 	return is_query;
