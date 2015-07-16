@@ -492,13 +492,16 @@ void gpib_info(void) {
 }
 
 /**
- * execute serial polling
+ * Execute serial polling
  *
  * We return the physical address of the device that created the SRQ.
+ *
+ * Note that this code is not tested since moving to primary/secondary addresses.
+ * I haven't looked how a device with two byte address behaves.
  */
 uchar gpib_serial_poll(void) {
 	uchar b, e;
-	uchar address = 0, found = 0, foundPhysical = 0;
+	uchar primary = 0, secondary = 0, found = 0, foundPhysical = 0;
 	int i;
 
 	// send UNT and UNL commands (unlisten and untalk)
@@ -520,12 +523,20 @@ uchar gpib_serial_poll(void) {
 	for (i = 0; (controller.partners[i].primary != 0x00) && !found; i++) {
 
 		// set partner to talker mode
-		address = address2TalkerAddress(controller.partners[i].primary);
-		// TODO: handle secondary address
-		cmd_buf[0] = address;
+		primary = address2TalkerAddress(controller.partners[i].primary);
+		secondary = secondaryAdressToAdressByte(
+				controller.partners[i].secondary);
+
+		cmd_buf[0] = primary;
 		//uart_puts("before talker address write\r\n");
 		gpib_cmd(cmd_buf, 1);
 		//uart_puts("after talker address write\r\n");
+		// handle secondary address if required
+		if (secondary != ADDRESS_NOT_SET) {
+			cmd_buf[0] = secondary;
+			//uart_puts("before talker address write\r\n");
+			gpib_cmd(cmd_buf, 1);
+		}
 
 		// now receive data
 		//uart_puts("before status byte receive\r\n");
@@ -534,7 +545,7 @@ uchar gpib_serial_poll(void) {
 		// status byte is now in b
 		sprintf((char*) cmd_buf,
 				"Status byte from device 0x%02x (physical address) = 0x%02x\n\r",
-				TalkerAddress2Address(address), b);
+				TalkerAddress2Address(primary), b);
 		uart_puts((char*) cmd_buf);
 
 		// send UNT and UNL commands (unlisten and untalk)
@@ -545,13 +556,13 @@ uchar gpib_serial_poll(void) {
 		gpib_cmd(cmd_buf, 1);
 
 		if (b & (1 << 6)) {
-			found = address;
+			found = primary;
 			foundPhysical = TalkerAddress2Address(found);
 			// bit 6 of status byte of SRQ emitter is 1
 			// when reading status byte from emitter, he releases SRQ line (may also be tested here)
 			sprintf((char*) cmd_buf,
-					"SRQ emitter is device = 0x%02x (physical address)\n\r",
-					foundPhysical);
+					"SRQ emitter is device = 0x%02x (physical address), secondary = 0x%02x\n\r",
+					foundPhysical, secondary);
 			uart_puts((char*) cmd_buf);
 		}
 	}
