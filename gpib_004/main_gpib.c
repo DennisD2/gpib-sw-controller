@@ -130,40 +130,58 @@ int buf_ptr = 0;
 int rs232_remote_echo = 1;
 
 /**
+ * Read two integers from string like "45 56" or one integer. In latter case
+ * the second integer is initialized with a special value.
+ */
+void stringToTwoUchars(char *string, uchar *a, uchar *b) {
+	char *token = strtok(string, " ");
+	*a = atoi((char*) token);
+	token = strtok(NULL, " ");
+	if (token != NULL) {
+		*b = atoi((char*) token);
+	} else {
+		*b = ADDRESS_NOT_SET;
+	}
+}
+
+/**
  * Handles builtin commands.
  */
 void handle_internal_commands(uchar *commandString) {
-	uchar sbuf[32];
-	uchar val;
+	uchar sbuf[64];
+	uchar val, val1;
 
 	switch (buf[1]) {
 	case 'a':
-		/* set partner address */
-		val = atoi((char*) (&(buf[2])));
-		sprintf(sbuf, "Set partner address to %u\n\r", val);
+		/* set partner primary+secondary address */
+		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
+		sprintf(sbuf, "Set partner address, primary: %u , secondary: %u\n\r",
+				val, val1);
 		uart_puts(sbuf);
-		gpib_set_partner_pad(val);
+		gpib_set_partner_address(val, val1);
 		break;
 	case 's':
 		/* set partner secondary address */
 		val = atoi((char*) (&(buf[2])));
 		sprintf(sbuf, "Set partner secondary address to %u\n\r", val);
 		uart_puts(sbuf);
-		gpib_set_partner_sad(val);
+		gpib_set_partner_secondary(val);
 		break;
 	case '+':
 		/* add device */
-		val = atoi((char*) (&(buf[2])));
-		sprintf(sbuf, "Added device with address %u\n\r", val);
+		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
+		sprintf(sbuf, "Add device, primary: %u , secondary: %u\n\r", val,
+				val1);
 		uart_puts(sbuf);
-		gpib_add_partner_sad(val);
+		gpib_add_partner_address(val, val1);
 		break;
 	case '-':
 		/* add device */
-		val = atoi((char*) (&(buf[2])));
-		sprintf(sbuf, "Removed device with address %u\n\r", val);
+		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
+		sprintf(sbuf, "Remove device, primary: %u , secondary: %u\n\r", val,
+				val1);
 		uart_puts(sbuf);
-		gpib_remove_partner_sad(val);
+		gpib_remove_partner_address(val, val1);
 		break;
 	case 'h':
 		/* print some usage infos */
@@ -297,7 +315,8 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 	uchar command_ready = 0;
 
 	// handle srq with serial poll
-	gpib_set_partner_pad(gpib_serial_poll());
+	// TODO: we cannot handle SRQs from devices with secondary addresses!
+	gpib_set_partner_address(gpib_serial_poll(), ADDRESS_NOT_SET);
 
 	if (gpib_get_flavour() == FLAVOUR_TEK) {
 		// Tek: check status for reason
@@ -531,13 +550,13 @@ void printHelp() {
 	uart_puts(buf);
 #endif
 	uart_puts("Internal commands:\n\r");
-	uart_puts(".a <device address> - set primary address of remote device\n\r");
+	uart_puts(
+			".a <primary> [<secondary>] - set primary/secondary address of remote device\n\r");
+	uart_puts(".s <secondary> - set secondary address of of remote device\n\r");
 	uart_puts(
 			".+ <n> - add partner device address to list of known devices.\n\r");
 	uart_puts(
 			".- <n> - remove partner device address from list of known devices.\n\r");
-	uart_puts(
-			".s <device address> - set secondary address of of remote device\n\r");
 	uart_puts(".h - print help\n\r");
 	uart_puts(".i - dump info about GPIB lines\n\r");
 }

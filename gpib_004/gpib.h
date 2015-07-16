@@ -82,14 +82,14 @@ extern void gpib_controller_release(void);
 extern uchar gpib_cmd(uchar *bytes, int length);
 uchar gpib_serial_poll(void);
 
-extern void gpib_set_partner_pad(uchar address);
-extern void gpib_set_partner_sad(uchar address);
+extern void gpib_set_partner_address(uchar primary, uchar secondary);
+extern void gpib_set_partner_secondary(uchar address);
 extern uchar gpib_get_partner_pad(void);
 extern uchar gpib_get_partner_sad(void);
 extern uchar gpib_get_address(void);
 
-extern uchar gpib_add_partner_sad(uchar address);
-extern void gpib_remove_partner_sad(uchar address);
+extern uchar gpib_add_partner_address(uchar primary, uchar secondary);
+extern uchar gpib_remove_partner_address(uchar primary, uchar secondary);
 extern void gpib_clear_partners();
 
 // listener functions

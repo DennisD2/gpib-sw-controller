@@ -42,7 +42,7 @@ typedef struct {
 	uchar myaddress; /**< controller address,usually 0x00 */
 	address_t partner; /**< currently addressed partner device */
 	uchar talks; /**< true while controller is talker */
-	uchar flavour;  /**< controller flavour */
+	uchar flavour; /**< controller flavour */
 	address_t partners[MAX_PARTNER]; /**< list of active partners */
 } gpib_controller_t;
 
@@ -187,28 +187,6 @@ uchar gpib_receive(uchar* _byte) {
 	*_byte = byte;
 
 	return eoi;
-}
-
-/**
- * Query all active partners on bus
- * \brief This function should query all partners on the bus by executing a serial poll after
- * take over of the bus as a controller. The partners found (answering) are stored in an
- * array "partners".
- *
- * TODO: the function does not a query for now, but just assumes that there are two devices
- * with addresses 0x01 and 0x02. This is very limited but currently ok for me.
- */
-//void queryPartners() {
-//	controller.partners[0] = 0x02;
-//	//controller.partners[1] = 0x01;
-//	controller.partners[3] = 0x00; // end value is 0x00
-//}
-uchar gpib_add_partner_sad(uchar address) {
-
-}
-
-void gpib_remove_partner_sad(uchar address) {
-
 }
 
 /**
@@ -460,6 +438,7 @@ void gpib_info(void) {
 			sprintf(buf, "Partner address: primary: %u, secondary: %u\n\r",
 					controller.partners[i].primary,
 					controller.partners[i].secondary);
+			uart_puts(buf);
 		}
 	}
 
@@ -592,16 +571,17 @@ uchar gpib_serial_poll(void) {
  * Set device to be controlled.
  * \param address Address of device.
  */
-void gpib_set_partner_pad(uchar address) {
-	controller.partner.primary = address;
+void gpib_set_partner_address(uchar primary, uchar secondary) {
+	controller.partner.primary = primary;
+	controller.partner.secondary = secondary;
 }
 
 /**
  * Set device to be controlled.
  * \param address Address of device.
  */
-void gpib_set_partner_sad(uchar address) {
-	controller.partner.secondary = address;
+void gpib_set_partner_secondary(uchar secondary) {
+	controller.partner.secondary = secondary;
 }
 
 /**
@@ -628,17 +608,58 @@ uchar gpib_get_address(void) {
 	return controller.myaddress;
 }
 
-void gpib_clear_partners() {
-	for (int i = 0; i < MAX_PARTNER; i++) {
-		controller.partners[i].primary = ADDRESS_NOT_SET;
-	}
-}
-
 void gpib_set_flavour(uchar flavour) {
 	controller.flavour = flavour;
 }
 
 uchar gpib_get_flavour(void) {
 	return controller.flavour;
+}
+
+/**
+ * Clear partners list
+ */
+void gpib_clear_partners() {
+	for (int i = 0; i < MAX_PARTNER; i++) {
+		controller.partners[i].primary = ADDRESS_NOT_SET;
+	}
+}
+
+/**
+ * Add partner to list of known devices. Only these acre scanned during a serial poll.
+ */
+uchar gpib_add_partner_address(uchar primary, uchar secondary) {
+	int i;
+	for (i = 0;
+			i < MAX_PARTNER && controller.partners[i].primary != ADDRESS_NOT_SET;
+			i++) {
+	}
+	if (i == MAX_PARTNER) {
+		uart_puts("Too much partners.\n\r");
+		return 1;
+	}
+	controller.partners[i].primary = primary;
+	controller.partners[i].secondary = secondary;
+	return 0;
+}
+
+/**
+ * Remove partner from list of known devices.
+ */
+uchar gpib_remove_partner_address(uchar primary, uchar secondary) {
+	int i;
+	for (i = 0;
+			i < MAX_PARTNER
+					&& (controller.partners[i].primary != primary
+							|| controller.partners[i].secondary != secondary);
+			i++) {
+	}
+	if (i == MAX_PARTNER) {
+		uart_puts("Partner unknown.\n\r");
+		return 1;
+	}
+	controller.partners[i].primary = ADDRESS_NOT_SET;
+	controller.partners[i].secondary = ADDRESS_NOT_SET;
+	return 0;
 }
 
