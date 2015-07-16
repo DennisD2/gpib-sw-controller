@@ -42,6 +42,7 @@ typedef struct {
 	uchar myaddress; /**< controller address,usually 0x00 */
 	address_t partner; /**< currently addressed partner device */
 	uchar talks; /**< true while controller is talker */
+	uchar flavour;  /**< controller flavour */
 	address_t partners[MAX_PARTNER]; /**< list of active partners */
 } gpib_controller_t;
 
@@ -457,7 +458,8 @@ void gpib_info(void) {
 	for (int i = 0; i < MAX_PARTNER; i++) {
 		if (controller.partners[i].primary != ADDRESS_NOT_SET) {
 			sprintf(buf, "Partner address: primary: %u, secondary: %u\n\r",
-					controller.partners[i].primary, controller.partners[i].secondary);
+					controller.partners[i].primary,
+					controller.partners[i].secondary);
 		}
 	}
 
@@ -631,3 +633,12 @@ void gpib_clear_partners() {
 		controller.partners[i].primary = ADDRESS_NOT_SET;
 	}
 }
+
+void gpib_set_flavour(uchar flavour) {
+	controller.flavour = flavour;
+}
+
+uchar gpib_get_flavour(void) {
+	return controller.flavour;
+}
+

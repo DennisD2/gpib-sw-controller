@@ -1,10 +1,10 @@
 /*************************************************************************
-Author:   	$Author: dennis $
-File:     	$HeadURL: file://localhost/home/dennis/svn-store/avr-source/gpib_004/gpib.h $
-Date:  		$Date: 2012-04-14 17:41:46 +0200 (Sa, 14 Apr 2012) $ 
-Revision: 	$Revision: 688 $ 
-Id: 		$Id: gpib.h 688 2012-04-14 15:41:46Z dennis $ 
-Licence:	GNU General Public License
+ Author:   	$Author: dennis $
+ File:     	$HeadURL: file://localhost/home/dennis/svn-store/avr-source/gpib_004/gpib.h $
+ Date:  		$Date: 2012-04-14 17:41:46 +0200 (Sa, 14 Apr 2012) $
+ Revision: 	$Revision: 688 $
+ Id: 		$Id: gpib.h 688 2012-04-14 15:41:46Z dennis $
+ Licence:	GNU General Public License
  *************************************************************************/
 
 /** 
@@ -18,11 +18,15 @@ Licence:	GNU General Public License
  *
  *  @author Dennis Dingeldein  http://www.dingeldein-online.de
  */
- 
+
 #ifndef GPIB_H_
 #define GPIB_H
 
 #include "defs.h"
+
+/** controller "flavours", controls special devices/companies */
+#define FLAVOUR_NONE 0
+#define FLAVOUR_TEK 1
 
 /** undefined address */
 #define ADDRESS_NOT_SET 0xff
@@ -71,29 +75,33 @@ Licence:	GNU General Public License
 #define MAX_PARTNER 5 
 
 // management functions for controller
-extern void gpib_init( void );
-extern void gpib_controller_assign( uchar address );
-extern void gpib_controller_release( void );
-extern uchar gpib_cmd( uchar *bytes, int length );
-uchar gpib_serial_poll( void );
+extern void gpib_init(void);
 
-extern void gpib_set_partner_pad( uchar address );
-extern void gpib_set_partner_sad( uchar address );
-extern uchar gpib_get_partner_pad( void );
-extern uchar gpib_get_partner_sad( void );
-extern uchar gpib_get_address( void );
+extern void gpib_set_flavour(uchar flavour);
+extern uchar gpib_get_flavour(void);
 
-extern uchar gpib_add_partner_sad( uchar address );
-extern void gpib_remove_partner_sad( uchar address );
+extern void gpib_controller_assign(uchar address);
+extern void gpib_controller_release(void);
+extern uchar gpib_cmd(uchar *bytes, int length);
+uchar gpib_serial_poll(void);
+
+extern void gpib_set_partner_pad(uchar address);
+extern void gpib_set_partner_sad(uchar address);
+extern uchar gpib_get_partner_pad(void);
+extern uchar gpib_get_partner_sad(void);
+extern uchar gpib_get_address(void);
+
+extern uchar gpib_add_partner_sad(uchar address);
+extern void gpib_remove_partner_sad(uchar address);
 extern void gpib_clear_partners();
 
 // listener functions
-extern uchar gpib_receive( uchar *byte );
+extern uchar gpib_receive(uchar *byte);
 
 // talker functions
-extern uchar gpib_write( uchar *bytes, int length );
+extern uchar gpib_write(uchar *bytes, int length);
 
 // just for code testing
-extern void gpib_info( void );
+extern void gpib_info(void);
 
 #endif /*GPIB_H_*/

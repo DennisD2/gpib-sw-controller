@@ -121,7 +121,6 @@ uchar input_process(void);
 void printHelp();
 void handle_internal_commands(uchar *commandString);
 
-
 /** buffers used for commands and output strings */
 uchar buf[80], cmd_buf[64];
 /** pointer in buffer */
@@ -298,6 +297,8 @@ int main(void) {
 	gpib_set_partner_sad(ADDRESS_NOT_SET);
 	/** clear list of partners */
 	gpib_clear_partners();
+	/** init flavour */
+	gpib_set_flavour(FLAVOUR_NONE);
 
 	/** print some usage infos */
 	printHelp();
@@ -367,9 +368,11 @@ int main(void) {
 		// if we sent a query, read the answer
 		if (is_query) {
 			receiveAnswer();
-			// TODO next two lines are Tek(1241?) flavour
-			uart_puts("\n\r"); // tek1241 is not sending cr,lf at command end, so create it always itself
-			uart_puts("> ");
+			if (gpib_get_flavour() == FLAVOUR_TEK) {
+				/// Tek: tek1241 is not sending cr,lf at command end, so create it always itself
+				uart_puts("\n\r");
+				uart_puts("> ");
+			}
 			// reset for next command
 			is_query = 0;
 		}
@@ -395,16 +398,19 @@ int main(void) {
 			srq = 0;
 			// handle srq with serial poll
 			gpib_set_partner_pad(gpib_serial_poll());
-			// check status for reason
-			buf[0] = 'E';
-			buf[1] = 'V';
-			buf[2] = 'E';
-			buf[3] = 'N';
-			buf[4] = 'T';
-			buf[5] = '?';
-			buf[6] = '\0';
-			buf_ptr = 6;
-			command_ready = 1;
+
+			if (gpib_get_flavour() == FLAVOUR_TEK) {
+				// Tek: check status for reason
+				buf[0] = 'E';
+				buf[1] = 'V';
+				buf[2] = 'E';
+				buf[3] = 'N';
+				buf[4] = 'T';
+				buf[5] = '?';
+				buf[6] = '\0';
+				buf_ptr = 6;
+				command_ready = 1;
+			}
 		}
 	}
 #else
