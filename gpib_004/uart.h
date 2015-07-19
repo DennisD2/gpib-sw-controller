@@ -84,6 +84,21 @@ LICENSE:
 #error "size of UART_RX_BUFFER_SIZE + UART_TX_BUFFER_SIZE larger than size of SRAM"
 #endif
 
+/**
+ * Xon/Xoff handling
+ *
+ */
+#define FLOWCONTROL_XONXOFF 0
+#define FLOWCONTROL_NONE 1
+
+#define XON 0x11
+#define XOFF 0x13
+
+/** value when to send XON after XOFF */
+#define UART_RX_BUFFER_MIN_MARK (5)
+/** value when to send XOFF */
+#define UART_RX_BUFFER_MAX_MARK (UART_RX_BUFFER_SIZE/2)
+
 /* 
 ** high byte error return code of uart_getc()
 */
