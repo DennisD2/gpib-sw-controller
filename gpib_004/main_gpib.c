@@ -140,7 +140,9 @@ uchar buf[80];
 int buf_ptr = 0;
 
 /** set to 1 to do line echo of all chars received by controller */
-int rs232_remote_echo = 1;
+uint8_t rs232_remote_echo = 1;
+/** Xon/Xoff flow control flag */
+uint8_t xonXoffMode = 0;
 
 /**
  * Read two integers from string like "45 56" or one integer. In latter case
@@ -183,8 +185,7 @@ void handle_internal_commands(uchar *commandString) {
 	case '+':
 		/* add device */
 		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
-		sprintf(sbuf, "Add device, primary: %u , secondary: %u\n\r", val,
-				val1);
+		sprintf(sbuf, "Add device, primary: %u , secondary: %u\n\r", val, val1);
 		uart_puts(sbuf);
 		gpib_add_partner_address(val, val1);
 		break;
@@ -196,12 +197,26 @@ void handle_internal_commands(uchar *commandString) {
 		uart_puts(sbuf);
 		gpib_remove_partner_address(val, val1);
 		break;
+	case 'x':
+		/* Xon/Xoff flow control */
+		if (!xonXoffMode) {
+			xonXoffMode = 1;
+			uart_set_flow_control(FLOWCONTROL_XONXOFF);
+			uart_puts("xon/xoff flowcontrol on");
+		} else {
+			xonXoffMode = 0;
+			uart_set_flow_control(FLOWCONTROL_NONE);
+			uart_puts("xon/xoff flowcontrol off");
+		}
+		break;
 	case 'h':
 		/* print some usage infos */
 		printHelp();
 		break;
 	case 'i':
 		gpib_info();
+		sprintf(sbuf, "Xon/Xoff flow control: %u\n\r", xonXoffMode );
+		uart_puts(sbuf);
 		break;
 	default:
 		uart_puts("unknown command\n\r");
@@ -570,7 +585,8 @@ void printHelp() {
 			".+ <n> - add partner device address to list of known devices.\n\r");
 	uart_puts(
 			".- <n> - remove partner device address from list of known devices.\n\r");
-	uart_puts(".h - print help\n\r");
-	uart_puts(".i - dump info about GPIB lines\n\r");
+	uart_puts(".x - toggle Xon/Xoff flow control.\n\r");
+	uart_puts(".h - print help.\n\r");
+	uart_puts(".i - dump info about GPIB lines.\n\r");
 }
 
