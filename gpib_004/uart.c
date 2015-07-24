@@ -293,7 +293,7 @@ SIGNAL(UART0_RECEIVE_INTERRUPT)
 
 	if (flowControl == FLOWCONTROL_XONXOFF
 			&& chars_in_rx_buffer > UART_RX_BUFFER_MAX_MARK) {
-		/* immediatedly send XOFF */
+		/* immediately send XOFF */
 		oob_event = 1;
 		if (!after_xoff_sent) {
 			SendOutOfBand(XOFF);
@@ -320,7 +320,7 @@ SIGNAL(UART0_TRANSMIT_INTERRUPT)
 	unsigned char tmptail;
 
 	if (oob_event) {
-		/* supress transmitting during oob handling */
+		/* suppress transmitting during oob handling */
 		return;
 	}
 	if (UART_TxHead != UART_TxTail) {
@@ -435,7 +435,7 @@ unsigned int uart_getc(void) {
 	}
 	if ((flowControl == FLOWCONTROL_XONXOFF) && after_xoff_sent) {
 		if (chars_in_rx_buffer <= UART_RX_BUFFER_MIN_MARK) {
-			/* immediatedly send XON */
+			/* immediately send XON */
 			oob_event = 1;
 			SendOutOfBand(XON);
 			after_xoff_sent = 0;

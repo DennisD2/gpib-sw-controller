@@ -72,7 +72,7 @@ LICENSE:
 
 /** Size of the circular receive buffer, must be power of 2 */
 #ifndef UART_RX_BUFFER_SIZE
-#define UART_RX_BUFFER_SIZE 32
+#define UART_RX_BUFFER_SIZE 128
 #endif
 /** Size of the circular transmit buffer, must be power of 2 */
 #ifndef UART_TX_BUFFER_SIZE
@@ -90,15 +90,17 @@ LICENSE:
  */
 #define FLOWCONTROL_XONXOFF 0
 #define FLOWCONTROL_NONE 1
-
 #define XON 0x11
 #define XOFF 0x13
-
-/** value when to send XON after XOFF */
-#define UART_RX_BUFFER_MIN_MARK (5)
+#if (UART_RX_BUFFER_SIZE >= 128)
 /** value when to send XOFF */
+#define UART_RX_BUFFER_MAX_MARK (UART_RX_BUFFER_SIZE-32)
+/** value when to send XON after XOFF */
+#define UART_RX_BUFFER_MIN_MARK (16)
+#else
 #define UART_RX_BUFFER_MAX_MARK (UART_RX_BUFFER_SIZE/2)
-
+#define UART_RX_BUFFER_MIN_MARK (8)
+#endif
 /* 
 ** high byte error return code of uart_getc()
 */
