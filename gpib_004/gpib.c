@@ -494,14 +494,18 @@ void gpib_info(void) {
 /**
  * Execute serial polling
  *
- * We return the physical address of the device that created the SRQ.
+ * We determine the physical address (primary, secondary) of the device that created the SRQ.
  *
  * Note that this code is not tested since moving to primary/secondary addresses.
  * I haven't looked how a device with two byte address behaves.
+ *
+ * Secondary/primary is returned in inout parameters
+ * If any emitter is found, return value is != 0.
  */
-uchar gpib_serial_poll(void) {
+uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v) {
 	uchar b, e;
-	uchar primary = 0, secondary = 0, found = 0, foundPhysical = 0;
+	uchar primary = 0, secondary = 0, found = 0,
+			foundPhysical = ADDRESS_NOT_SET;
 	int i;
 
 	// send UNT and UNL commands (unlisten and untalk)
@@ -520,7 +524,8 @@ uchar gpib_serial_poll(void) {
 	//uart_puts("after SPE\r\n");
 
 	// searching for SRQ emitter in a loop ...
-	for (i = 0; (controller.partners[i].primary != 0x00) && !found; i++) {
+	for (i = 0; (controller.partners[i].primary != ADDRESS_NOT_SET) && !found;
+			i++) {
 
 		// set partner to talker mode
 		primary = address2TalkerAddress(controller.partners[i].primary);
@@ -543,9 +548,16 @@ uchar gpib_serial_poll(void) {
 		e = gpib_receive(&b);
 		//uart_puts("after status byte receive\r\n");
 		// status byte is now in b
-		sprintf((char*) cmd_buf,
-				"Status byte from device 0x%02x (physical address) = 0x%02x\n\r",
-				TalkerAddress2Address(primary), b);
+
+		if (secondary != ADDRESS_NOT_SET) {
+			sprintf((char*) cmd_buf,
+					"Status byte from device primary=0x%02x,secondary=0x%02x (physical) = 0x%02x\n\r",
+					TalkerAddress2Address(primary), secondary, b);
+		} else {
+			sprintf((char*) cmd_buf,
+					"Status byte from device primary=0x%02x (physical) = 0x%02x\n\r",
+					TalkerAddress2Address(primary), b);
+		}
 		uart_puts((char*) cmd_buf);
 
 		// send UNT and UNL commands (unlisten and untalk)
@@ -574,8 +586,11 @@ uchar gpib_serial_poll(void) {
 	gpib_cmd(cmd_buf, 1);
 	//uart_puts("after SPD\r\n");
 
-	// return SRQ emitter address if found
-	return foundPhysical;
+	// "return" values determined
+	*primary_v = primary;
+	*secondary_v = secondary;
+
+	return found;
 }
 
 /**

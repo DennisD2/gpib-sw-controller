@@ -215,7 +215,7 @@ void handle_internal_commands(uchar *commandString) {
 		break;
 	case 'i':
 		gpib_info();
-		sprintf(sbuf, "Xon/Xoff flow control: %u\n\r", xonXoffMode );
+		sprintf(sbuf, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
 		uart_puts(sbuf);
 		break;
 	default:
@@ -343,8 +343,12 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 	uchar command_ready = 0;
 
 	// handle srq with serial poll
-	// TODO: we cannot handle SRQs from devices with secondary addresses!
-	gpib_set_partner_address(gpib_serial_poll(), ADDRESS_NOT_SET);
+	uint8_t primary, secondary;
+	if (gpib_serial_poll(&primary, &secondary)) {
+		uart_puts(
+				"\n\rSRQ emitter is not in list of known devices. SRQ Ignored.\n\r");
+	}
+	gpib_set_partner_address(primary, secondary);
 
 	if (gpib_get_flavour() == FLAVOUR_TEK) {
 		// Tek: check status for reason
@@ -412,7 +416,7 @@ int main(void) {
 			do_prompt = 0;
 		}
 		// input processing via rs232
-		// command_ready may already been set by SRQ that occured before
+		// command_ready may already been set by SRQ that occurred before
 		if (!command_ready)
 			command_ready = input_process();
 

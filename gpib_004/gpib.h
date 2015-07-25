@@ -80,7 +80,7 @@ extern uchar gpib_get_flavour(void);
 extern void gpib_controller_assign(uchar address);
 extern void gpib_controller_release(void);
 extern uchar gpib_cmd(uchar *bytes, int length);
-uchar gpib_serial_poll(void);
+uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v);
 
 extern void gpib_set_partner_address(uchar primary, uchar secondary);
 extern void gpib_set_partner_secondary(uchar address);
