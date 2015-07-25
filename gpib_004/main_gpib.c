@@ -344,7 +344,7 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 
 	// handle srq with serial poll
 	uint8_t primary, secondary;
-	if (gpib_serial_poll(&primary, &secondary)) {
+	if (!gpib_serial_poll(&primary, &secondary)) {
 		uart_puts(
 				"\n\rSRQ emitter is not in list of known devices. SRQ Ignored.\n\r");
 	}
