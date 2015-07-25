@@ -134,8 +134,9 @@ uchar input_process(void);
 void printHelp();
 void handle_internal_commands(uchar *commandString);
 
+#define COMMAND_INPUT_BUFFER_SIZE 80
 /** buffers used for commands and output strings */
-uchar buf[80];
+uchar buf[COMMAND_INPUT_BUFFER_SIZE];
 /** pointer in buffer */
 int buf_ptr = 0;
 
@@ -549,21 +550,66 @@ uchar input_process(void) {
 	/* 
 	 * send received character back depending on global flag
 	 */
-	if (rs232_remote_echo)
+	if (rs232_remote_echo) {
 		uart_putc((unsigned char) c);
+	}
 
-	// make uchar from character in int value
-	ch = (uchar) c;
-	// add to buffer
-	buf[buf_ptr++] = ch;
-	// terminate string
-	buf[buf_ptr] = '\0';
+	//
+	// Idea for code below: if xon/xoff flow control, we assume large command line.
+	// then stay in this function, get all chars in, send them with gpib_write() in parts.
+	//
+	// If we get last part ('\N') set ret to one and return. Then main() will send the
+	// last part.
+	//
+	// For small single line commands, this should also work and be compatible to old behaviour.
+	// this needs testing !!!!
+	//
+	//
+	if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
+		uint8_t receive_complete = 0;
 
-	// <CR> means command input is complete
-	if (ch == ASCII_CODE_CR) {
-		// adjust string terminator
-		buf[--buf_ptr] = '\0';
-		ret = 1;
+		while (!receive_complete) {
+			// make uchar from character in int value
+			ch = (uchar) c;
+
+			// if inputbuffer is not full, add char
+			if (buf_ptr < COMMAND_INPUT_BUFFER_SIZE - 1) {
+				buf[buf_ptr++] = ch;
+				buf[buf_ptr] = '\0';
+			}
+
+			// if command ends or buffer is full ...
+			if (ch == ASCII_CODE_CR
+					|| buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
+
+				if (ch == ASCII_CODE_CR) {
+					// adjust string terminator
+					buf[--buf_ptr] = '\0';
+					// let calling function send last command part (or command itself)
+					receive_complete = 1;
+				} else {
+					// send intermediate part of command.
+					send_command(buf);
+					buf_ptr=0;
+				}
+			}
+		}
+	} else {
+
+		// make uchar from character in int value
+		ch = (uchar) c;
+
+		// add to buffer
+		buf[buf_ptr++] = ch;
+		// terminate string
+		buf[buf_ptr] = '\0';
+
+		// <CR> means command input is complete
+		if (ch == ASCII_CODE_CR) {
+			// adjust string terminator
+			buf[--buf_ptr] = '\0';
+			ret = 1;
+		}
 	}
 
 	return ret;

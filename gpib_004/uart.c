@@ -251,6 +251,11 @@ void uart_set_flow_control(unsigned char _flowControl) {
 	flowControl = _flowControl;
 }
 
+unsigned char uart_get_flow_control() {
+	return flowControl;
+}
+
+
 SIGNAL(UART0_RECEIVE_INTERRUPT)
 /*************************************************************************
  Function: UART Receive Complete interrupt
