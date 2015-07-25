@@ -346,6 +346,7 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 	if (!gpib_serial_poll(&primary, &secondary)) {
 		uart_puts(
 				"\n\rSRQ emitter is not in list of known devices. SRQ Ignored.\n\r");
+		return command_ready;
 	}
 	gpib_set_partner_address(primary, secondary);
 

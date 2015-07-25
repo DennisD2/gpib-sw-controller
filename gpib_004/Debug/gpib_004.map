@@ -155,7 +155,7 @@ LOAD /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5
 .rela.plt
  *(.rela.plt)
 
-.text           0x0000000000000000     0x25ce
+.text           0x0000000000000000     0x25d8
  *(.vectors)
  .vectors       0x0000000000000000       0x54 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/crtm32.o
                 0x0000000000000000                __vectors
@@ -341,61 +341,61 @@ LOAD /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5
                 0x0000000000001d94       0x7a ./main_gpib.o
                 0x0000000000001d94                srq_occured
  .text.handle_srq
-                0x0000000000001e0e       0xbe ./main_gpib.o
+                0x0000000000001e0e       0xc8 ./main_gpib.o
                 0x0000000000001e0e                handle_srq
- .text.main     0x0000000000001ecc      0x100 ./main_gpib.o
-                0x0000000000001ecc                main
+ .text.main     0x0000000000001ed6      0x100 ./main_gpib.o
+                0x0000000000001ed6                main
  .text.input_process
-                0x0000000000001fcc       0xe6 ./main_gpib.o
-                0x0000000000001fcc                input_process
+                0x0000000000001fd6       0xe6 ./main_gpib.o
+                0x0000000000001fd6                input_process
  .text.printHelp
-                0x00000000000020b2       0x8e ./main_gpib.o
-                0x00000000000020b2                printHelp
+                0x00000000000020bc       0x8e ./main_gpib.o
+                0x00000000000020bc                printHelp
  .text.__vector_7
-                0x0000000000002140       0x44 ./timer16.o
-                0x0000000000002140                __vector_7
+                0x000000000000214a       0x44 ./timer16.o
+                0x000000000000214a                __vector_7
  .text.timer16_init
-                0x0000000000002184       0x40 ./timer16.o
-                0x0000000000002184                timer16_init
+                0x000000000000218e       0x40 ./timer16.o
+                0x000000000000218e                timer16_init
  .text.uart_set_flow_control
-                0x00000000000021c4       0x1a ./uart.o
-                0x00000000000021c4                uart_set_flow_control
+                0x00000000000021ce       0x1a ./uart.o
+                0x00000000000021ce                uart_set_flow_control
  .text.__vector_13
-                0x00000000000021de       0xe0 ./uart.o
-                0x00000000000021de                __vector_13
+                0x00000000000021e8       0xe0 ./uart.o
+                0x00000000000021e8                __vector_13
  .text.SendOutOfBand
-                0x00000000000022be       0x2e ./uart.o
-                0x00000000000022be                SendOutOfBand
+                0x00000000000022c8       0x2e ./uart.o
+                0x00000000000022c8                SendOutOfBand
  .text.__vector_14
-                0x00000000000022ec       0x84 ./uart.o
-                0x00000000000022ec                __vector_14
+                0x00000000000022f6       0x84 ./uart.o
+                0x00000000000022f6                __vector_14
  .text.uart_init
-                0x0000000000002370       0x68 ./uart.o
-                0x0000000000002370                uart_init
+                0x000000000000237a       0x68 ./uart.o
+                0x000000000000237a                uart_init
  .text.uart_getc
-                0x00000000000023d8       0xac ./uart.o
-                0x00000000000023d8                uart_getc
+                0x00000000000023e2       0xac ./uart.o
+                0x00000000000023e2                uart_getc
  .text.uart_putc
-                0x0000000000002484       0x4e ./uart.o
-                0x0000000000002484                uart_putc
+                0x000000000000248e       0x4e ./uart.o
+                0x000000000000248e                uart_putc
  .text.uart_puts
-                0x00000000000024d2       0x3a ./uart.o
-                0x00000000000024d2                uart_puts
+                0x00000000000024dc       0x3a ./uart.o
+                0x00000000000024dc                uart_puts
  .text.uart_puts_p
-                0x000000000000250c       0x50 ./uart.o
-                0x000000000000250c                uart_puts_p
- .text.libgcc   0x000000000000255c        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_exit.o)
- .text.libgcc   0x000000000000255c        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_copy_data.o)
- .text.libgcc   0x000000000000255c        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_clear_bss.o)
- .text.libgcc   0x000000000000255c       0x38 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_prologue.o)
-                0x000000000000255c                __prologue_saves__
- .text.libgcc   0x0000000000002594       0x36 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_epilogue.o)
-                0x0000000000002594                __epilogue_restores__
-                0x00000000000025ca                . = ALIGN (0x2)
+                0x0000000000002516       0x50 ./uart.o
+                0x0000000000002516                uart_puts_p
+ .text.libgcc   0x0000000000002566        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_exit.o)
+ .text.libgcc   0x0000000000002566        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_copy_data.o)
+ .text.libgcc   0x0000000000002566        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_clear_bss.o)
+ .text.libgcc   0x0000000000002566       0x38 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_prologue.o)
+                0x0000000000002566                __prologue_saves__
+ .text.libgcc   0x000000000000259e       0x36 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_epilogue.o)
+                0x000000000000259e                __epilogue_restores__
+                0x00000000000025d4                . = ALIGN (0x2)
  *(.fini9)
- .fini9         0x00000000000025ca        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_exit.o)
-                0x00000000000025ca                exit
-                0x00000000000025ca                _exit
+ .fini9         0x00000000000025d4        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_exit.o)
+                0x00000000000025d4                exit
+                0x00000000000025d4                _exit
  *(.fini9)
  *(.fini8)
  *(.fini8)
@@ -414,11 +414,11 @@ LOAD /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5
  *(.fini1)
  *(.fini1)
  *(.fini0)
- .fini0         0x00000000000025ca        0x4 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_exit.o)
+ .fini0         0x00000000000025d4        0x4 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5/libgcc.a(_exit.o)
  *(.fini0)
-                0x00000000000025ce                _etext = .
+                0x00000000000025d8                _etext = .
 
-.data           0x0000000000800060      0x53e load address 0x00000000000025ce
+.data           0x0000000000800060      0x53e load address 0x00000000000025d8
                 0x0000000000800060                PROVIDE (__data_start, .)
  *(.data)
  .data          0x0000000000800060        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/crtm32.o
@@ -455,7 +455,7 @@ LOAD /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5
                 0x000000000080059e                _edata = .
                 0x000000000080059e                PROVIDE (__data_end, .)
 
-.bss            0x000000000080059e      0x173 load address 0x0000000000002b0c
+.bss            0x000000000080059e      0x173 load address 0x0000000000002b16
                 0x000000000080059e                PROVIDE (__bss_start, .)
  *(.bss)
  .bss           0x000000000080059e        0x0 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/crtm32.o
@@ -519,8 +519,8 @@ LOAD /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5
                 0x000000000080070f                timer
                 0x0000000000800710                s
                 0x0000000000800711                PROVIDE (__bss_end, .)
-                0x00000000000025ce                __data_load_start = LOADADDR (.data)
-                0x0000000000002b0c                __data_load_end = (__data_load_start + SIZEOF (.data))
+                0x00000000000025d8                __data_load_start = LOADADDR (.data)
+                0x0000000000002b16                __data_load_end = (__data_load_start + SIZEOF (.data))
 
 .noinit         0x0000000000800711        0x0
                 0x0000000000800711                PROVIDE (__noinit_start, .)
@@ -545,40 +545,40 @@ LOAD /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5
 .signature
  *(.signature*)
 
-.stab           0x0000000000000000     0x4e18
+.stab           0x0000000000000000     0x4e24
  *(.stab)
  .stab          0x0000000000000000      0x6b4 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/crtm32.o
  .stab          0x00000000000006b4     0x14e8 ./gpib.o
                                        0x14f4 (size before relaxing)
- .stab          0x0000000000001b9c      0xd50 ./main_gpib.o
-                                       0x1038 (size before relaxing)
- .stab          0x00000000000028ec      0x24c ./timer16.o
+ .stab          0x0000000000001b9c      0xd5c ./main_gpib.o
+                                       0x1044 (size before relaxing)
+ .stab          0x00000000000028f8      0x24c ./timer16.o
                                         0x564 (size before relaxing)
- .stab          0x0000000000002b38      0x714 ./uart.o
+ .stab          0x0000000000002b44      0x714 ./uart.o
                                         0x978 (size before relaxing)
- .stab          0x000000000000324c      0x174 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(atoi.o)
+ .stab          0x0000000000003258      0x174 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(atoi.o)
                                         0x180 (size before relaxing)
- .stab          0x00000000000033c0      0x198 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strtok.o)
+ .stab          0x00000000000033cc      0x198 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strtok.o)
                                         0x1a4 (size before relaxing)
- .stab          0x0000000000003558       0x9c /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strchr.o)
+ .stab          0x0000000000003564       0x9c /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strchr.o)
                                          0xa8 (size before relaxing)
- .stab          0x00000000000035f4       0x84 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strlen.o)
+ .stab          0x0000000000003600       0x84 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strlen.o)
                                          0x90 (size before relaxing)
- .stab          0x0000000000003678      0x270 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strtok_r.o)
+ .stab          0x0000000000003684      0x270 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strtok_r.o)
                                         0x27c (size before relaxing)
- .stab          0x00000000000038e8       0x78 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(mul10.o)
+ .stab          0x00000000000038f4       0x78 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(mul10.o)
                                          0x84 (size before relaxing)
- .stab          0x0000000000003960      0x3b4 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(sprintf.o)
+ .stab          0x000000000000396c      0x3b4 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(sprintf.o)
                                         0x3d8 (size before relaxing)
- .stab          0x0000000000003d14      0x978 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(vfprintf_std.o)
+ .stab          0x0000000000003d20      0x978 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(vfprintf_std.o)
                                         0xb58 (size before relaxing)
- .stab          0x000000000000468c       0x9c /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strnlen_P.o)
+ .stab          0x0000000000004698       0x9c /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strnlen_P.o)
                                          0xa8 (size before relaxing)
- .stab          0x0000000000004728       0x9c /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strnlen.o)
+ .stab          0x0000000000004734       0x9c /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(strnlen.o)
                                          0xa8 (size before relaxing)
- .stab          0x00000000000047c4      0x1d4 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(fputc.o)
+ .stab          0x00000000000047d0      0x1d4 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(fputc.o)
                                         0x3b4 (size before relaxing)
- .stab          0x0000000000004998      0x480 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(ultoa_invert.o)
+ .stab          0x00000000000049a4      0x480 /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/../../../avr/lib/avr5/libc.a(ultoa_invert.o)
                                         0x48c (size before relaxing)
 
 .stabstr        0x0000000000000000     0x24ef
