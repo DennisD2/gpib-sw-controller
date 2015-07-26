@@ -551,11 +551,17 @@ uchar input_char(uchar *ch) {
 }
 
 /**
- * Process char.
- * Echo if required.
- * add char to buffer.
+ * Process input char.
+ * Echo if required, add char to buffer if possible.
+ * If a CR is read command end is suspected.
+ * If buffer is full then the following happens:
+ * a) xon/xoff mode forward buffer to GPIB
+ * b) no flow control: prints error message that input buffer is full.
+ *
+ * Returns 1 if command end is detected, 0 otherwise.
  */
-void process_char(uchar ch) {
+uchar process_char(uchar ch) {
+	uchar ret = 0;
 	/*
 	 * send received character back depending on global flag
 	 */
@@ -569,69 +575,19 @@ void process_char(uchar ch) {
 		buf[buf_ptr] = '\0';
 	}
 
-}
+	// if command ends or buffer is full ...
+	if (ch == ASCII_CODE_CR || buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
 
-/**
- * Processing user input
- * \brief Read in user input via rs232 using peter fleurys UART library.
- * \returns The character read in
- */
-
-uchar input_process(void) {
-	uchar ch, ret = 0;
-
-	if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
-		//
-		// Idea for code below: if xon/xoff flow control, we assume large command line.
-		// then stay in this function, get all chars in, send them with gpib_write() in parts.
-		//
-		// If we get last part ('\N') set ret to one and return. Then main() will send the
-		// last part.
-		//
-		// For small single line commands, this should also work and be compatible to old behaviour.
-		// this needs testing !!!!
-		//
-		//
-
-		while (!ret) {
-			// if nothing can be read in, return
-			if (!input_char(&ch)) {
-				return 0;
-			}
-			process_char(ch);
-
-			// if command ends or buffer is full ...
-			if (ch == ASCII_CODE_CR
-					|| buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
-
-				if (ch == ASCII_CODE_CR) {
-					// adjust string terminator
-					buf[--buf_ptr] = '\0';
-					// let calling function send last command part (or command itself)
-					ret = 1;
-				} else {
-					// send intermediate part of command.
-					send_command(buf);
-					buf_ptr = 0;
-				}
-			}
-
-		}
-	} else {
-		// if nothing can be read in, return
-		if (!input_char(&ch)) {
-			return 0;
-		}
-		process_char(ch);
-
-		// if command ends or buffer is full ...
-		if (ch == ASCII_CODE_CR || buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
-
-			if (ch == ASCII_CODE_CR) {
-				// adjust string terminator
-				buf[--buf_ptr] = '\0';
-				// let calling function send last command part (or command itself)
-				ret = 1;
+		if (ch == ASCII_CODE_CR) {
+			// adjust string terminator
+			buf[--buf_ptr] = '\0';
+			// let calling function send last command part (or command itself)
+			ret = 1;
+		} else {
+			if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
+				// send intermediate part of command.
+				send_command(buf);
+				buf_ptr = 0;
 			} else {
 				// send intermediate part of command.
 				uart_puts_P("Command overflow.");
@@ -639,7 +595,41 @@ uchar input_process(void) {
 			}
 		}
 	}
+	return ret;
+}
 
+/**
+ * Processing user input
+ * \brief Read in user input via rs232 using peter fleurys UART library.
+ *
+ * Idea for code below: if xon/xoff flow control, we assume large command line.
+ * then stay in this function, get all chars in, send them with gpib_write() in parts.
+ *
+ * If we get last part (CR received) set ret to one and return. Then main() will send the
+ * last part.
+ * This approach handles small single line commands (needing no flow control) and large
+ * multi-line commands if flow control is xon/xoff.
+ *
+ * \returns The character read in
+ */
+uchar input_process(void) {
+	uchar ch, ret = 0;
+
+	if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
+		while (!ret) {
+			// if nothing can be read in, return
+			if (!input_char(&ch)) {
+				return 0;
+			}
+			ret = process_char(ch);
+		}
+	} else {
+		// if nothing can be read in, return
+		if (!input_char(&ch)) {
+			return 0;
+		}
+		ret = process_char(ch);
+	}
 	return ret;
 }
 
