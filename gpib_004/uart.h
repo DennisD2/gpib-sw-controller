@@ -90,8 +90,8 @@ LICENSE:
  */
 extern void uart_set_flow_control(unsigned char flowControl);
 extern unsigned char uart_get_flow_control();
-#define FLOWCONTROL_XONXOFF 0
-#define FLOWCONTROL_NONE 1
+#define FLOWCONTROL_NONE 0
+#define FLOWCONTROL_XONXOFF 1
 #define XON 0x11
 #define XOFF 0x13
 #if (UART_RX_BUFFER_SIZE >= 128)

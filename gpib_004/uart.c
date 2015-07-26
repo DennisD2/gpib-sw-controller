@@ -237,7 +237,7 @@ static volatile unsigned char UART1_LastRxError;
 #endif
 
 /** determine if flow control is enabled */
-static unsigned char flowControl = 0;
+static unsigned char flowControl = FLOWCONTROL_NONE;
 /** in out of band (oob) handling */
 static volatile unsigned char oob_event = 0;
 /** we sent xoff, used to send xoff only one time */

@@ -144,6 +144,8 @@ int buf_ptr = 0;
 uint8_t rs232_remote_echo = 1;
 /** Xon/Xoff flow control flag */
 uint8_t xonXoffMode = 0;
+/** srq enabled mode */
+uint8_t srq_enabled = 1;
 
 /**
  * Read two integers from string like "45 56" or one integer. In latter case
@@ -203,11 +205,11 @@ void handle_internal_commands(uchar *commandString) {
 		if (!xonXoffMode) {
 			xonXoffMode = 1;
 			uart_set_flow_control(FLOWCONTROL_XONXOFF);
-			uart_puts("xon/xoff flowcontrol on");
+			uart_puts("xon/xoff flowcontrol on\n\r");
 		} else {
 			xonXoffMode = 0;
 			uart_set_flow_control(FLOWCONTROL_NONE);
-			uart_puts("xon/xoff flowcontrol off");
+			uart_puts("xon/xoff flowcontrol off\n\r");
 		}
 		break;
 	case 'h':
@@ -347,6 +349,8 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 	if (!gpib_serial_poll(&primary, &secondary)) {
 		uart_puts(
 				"\n\rSRQ emitter is not in list of known devices. SRQ Ignored.\n\r");
+		uart_puts("\n\rSRQs are disabled now.\n\r");
+		srq_enabled = 0;
 		return command_ready;
 	}
 	gpib_set_partner_address(primary, secondary);
@@ -441,7 +445,7 @@ int main(void) {
 
 		// GPIB command. Check if a partner was defined.
 		if (command_ready && (gpib_get_partner_pad() == ADDRESS_NOT_SET)) {
-			uart_puts("Device address is not set. Will not send commands.\n\r");
+			uart_puts("Device address is not set. Can not send command.\n\r");
 			// reset local vars for command string reading
 			command_ready = 0;
 			buf_ptr = 0;
@@ -472,7 +476,7 @@ int main(void) {
 
 		// SRQ detection - do this every time when time value s has changed
 		// s is incremented every second. So we check once a second.
-		if (srq_occured(&old_time)) {
+		if (srq_enabled && srq_occured(&old_time)) {
 			command_ready = handle_srq(buf, &buf_ptr);
 		}
 	}
@@ -500,19 +504,14 @@ int main(void) {
 }
 
 /**
- * Processing user input
- * \brief Read in user input via rs232 using peter fleurys UART library.
- * \returns The character read in
+ * Reads in character into parameter c. Checks for errors and prints them out.
+ * Returns 0 if there is no char to read, 1 if there was a char read in.
  */
-
-uchar input_process(void) {
+uchar input_char(uchar *ch) {
 	unsigned int c;
-	uchar ch;
-	uchar ret = 0;
-
 	/*
 	 * Get received character from ringbuffer
-	 * uart_getc() returns in the lower byte the received character and 
+	 * uart_getc() returns in the lower byte the received character and
 	 * in the higher byte (bitmask) the last receive error
 	 * UART_NO_DATA is returned when no data is available.
 	 *
@@ -522,6 +521,8 @@ uchar input_process(void) {
 		// no data available from UART
 		return 0;
 	}
+	// make uchar from character in int value
+	*ch = (uchar) c;
 
 	/*
 	 * new data available from UART
@@ -532,51 +533,72 @@ uchar input_process(void) {
 		uart_puts_P("UART Frame Error: ");
 	}
 	if (c & UART_OVERRUN_ERROR) {
-		/* 
-		 * Overrun, a character already present in the UART UDR register was 
+		/*
+		 * Overrun, a character already present in the UART UDR register was
 		 * not read by the interrupt handler before the next character arrived,
 		 * one or more received characters have been dropped
 		 */
 		uart_puts_P("UART Overrun Error: ");
 	}
 	if (c & UART_BUFFER_OVERFLOW) {
-		/* 
+		/*
 		 * We are not reading the receive buffer fast enough,
-		 * one or more received character have been dropped 
+		 * one or more received character have been dropped
 		 */
 		uart_puts_P("Buffer overflow error: ");
 	}
+	return 1;
+}
 
-	/* 
+/**
+ * Process char.
+ * Echo if required.
+ * add char to buffer.
+ */
+void process_char(uchar ch) {
+	/*
 	 * send received character back depending on global flag
 	 */
 	if (rs232_remote_echo) {
-		uart_putc((unsigned char) c);
+		uart_putc((unsigned char) ch);
 	}
 
-	//
-	// Idea for code below: if xon/xoff flow control, we assume large command line.
-	// then stay in this function, get all chars in, send them with gpib_write() in parts.
-	//
-	// If we get last part ('\N') set ret to one and return. Then main() will send the
-	// last part.
-	//
-	// For small single line commands, this should also work and be compatible to old behaviour.
-	// this needs testing !!!!
-	//
-	//
+	// if input buffer is not full, add char
+	if (buf_ptr < COMMAND_INPUT_BUFFER_SIZE - 1) {
+		buf[buf_ptr++] = ch;
+		buf[buf_ptr] = '\0';
+	}
+
+}
+
+/**
+ * Processing user input
+ * \brief Read in user input via rs232 using peter fleurys UART library.
+ * \returns The character read in
+ */
+
+uchar input_process(void) {
+	uchar ch, ret = 0;
+
 	if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
-		uint8_t receive_complete = 0;
+		//
+		// Idea for code below: if xon/xoff flow control, we assume large command line.
+		// then stay in this function, get all chars in, send them with gpib_write() in parts.
+		//
+		// If we get last part ('\N') set ret to one and return. Then main() will send the
+		// last part.
+		//
+		// For small single line commands, this should also work and be compatible to old behaviour.
+		// this needs testing !!!!
+		//
+		//
 
-		while (!receive_complete) {
-			// make uchar from character in int value
-			ch = (uchar) c;
-
-			// if inputbuffer is not full, add char
-			if (buf_ptr < COMMAND_INPUT_BUFFER_SIZE - 1) {
-				buf[buf_ptr++] = ch;
-				buf[buf_ptr] = '\0';
+		while (!ret) {
+			// if nothing can be read in, return
+			if (!input_char(&ch)) {
+				return 0;
 			}
+			process_char(ch);
 
 			// if command ends or buffer is full ...
 			if (ch == ASCII_CODE_CR
@@ -586,36 +608,42 @@ uchar input_process(void) {
 					// adjust string terminator
 					buf[--buf_ptr] = '\0';
 					// let calling function send last command part (or command itself)
-					receive_complete = 1;
+					ret = 1;
 				} else {
 					// send intermediate part of command.
 					send_command(buf);
-					buf_ptr=0;
+					buf_ptr = 0;
 				}
 			}
+
 		}
 	} else {
+		// if nothing can be read in, return
+		if (!input_char(&ch)) {
+			return 0;
+		}
+		process_char(ch);
 
-		// make uchar from character in int value
-		ch = (uchar) c;
+		// if command ends or buffer is full ...
+		if (ch == ASCII_CODE_CR || buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
 
-		// add to buffer
-		buf[buf_ptr++] = ch;
-		// terminate string
-		buf[buf_ptr] = '\0';
-
-		// <CR> means command input is complete
-		if (ch == ASCII_CODE_CR) {
-			// adjust string terminator
-			buf[--buf_ptr] = '\0';
-			ret = 1;
+			if (ch == ASCII_CODE_CR) {
+				// adjust string terminator
+				buf[--buf_ptr] = '\0';
+				// let calling function send last command part (or command itself)
+				ret = 1;
+			} else {
+				// send intermediate part of command.
+				uart_puts_P("Command overflow.");
+				buf_ptr = 0;
+			}
 		}
 	}
 
 	return ret;
 }
 
-#define REVISION "0.7"
+#define REVISION "0.8"
 
 void printHelp() {
 #ifdef WRITE
