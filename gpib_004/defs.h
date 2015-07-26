@@ -12,6 +12,9 @@ DESCRIPTION:
 #ifndef DEFS_H_
 #define DEFS_H_
 
+/** software revision number */
+#define REVISION "0.8"
+
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef unsigned long ulong;

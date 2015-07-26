@@ -5277,8 +5277,6 @@ uchar input_process(void) {
 
 000021b0 <printHelp>:
 
-#define REVISION "0.8"
-
 void printHelp() {
     21b0:	df 93       	push	r29
     21b2:	cf 93       	push	r28

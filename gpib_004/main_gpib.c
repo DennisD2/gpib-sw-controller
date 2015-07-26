@@ -633,8 +633,6 @@ uchar input_process(void) {
 	return ret;
 }
 
-#define REVISION "0.8"
-
 void printHelp() {
 #ifdef WRITE
 	sprintf(buf,
@@ -648,7 +646,7 @@ void printHelp() {
 	uart_puts("Internal commands:\n\r");
 	uart_puts(
 			".a <primary> [<secondary>] - set primary/secondary address of remote device\n\r");
-	uart_puts(".s <secondary> - set secondary address of of remote device\n\r");
+	uart_puts(".s <secondary> - set secondary address of remote device\n\r");
 	uart_puts(
 			".+ <n> - add partner device address to list of known devices.\n\r");
 	uart_puts(
