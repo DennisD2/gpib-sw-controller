@@ -4,6 +4,7 @@ Bugs
 
 Things to do
 ------------
+- code + command to enable/disable SRQs
 - include code from community
 
 

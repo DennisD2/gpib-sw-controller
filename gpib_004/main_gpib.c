@@ -133,6 +133,7 @@
 uchar input_process(void);
 void printHelp();
 void handle_internal_commands(uchar *commandString);
+uchar send_command(uchar *commandString) ;
 
 #define COMMAND_INPUT_BUFFER_SIZE 80
 /** buffers used for commands and output strings */
@@ -146,6 +147,34 @@ uint8_t rs232_remote_echo = 1;
 uint8_t xonXoffMode = 0;
 /** srq enabled mode */
 uint8_t srq_enabled = 1;
+
+#ifdef ARB_TEST
+void arb_ramp() {
+	uchar b[10];
+	double f;
+	//send_command("SOUR:LIST:SEGM:VOLT ");
+	for (int i=0; i<4096; i++) {
+		f=0.00122*(double)i;
+		sprintf(b, "%1.4f,", f);
+		uart_puts(b);
+		//gpib_write(b, 0);
+	}
+
+}
+void arb() {
+	send_command("*RST");
+	send_command("SOUR:ROSC:SOUR INT;");
+	send_command("SOUR:FREQ:FIX 1E3;");
+	send_command("SOUR:FUNC:SHAP USER;");
+	send_command("SOUR:VOLT:LEV:IMM:AMPL 5V");
+	send_command("SOUR:LIST:SEGM:SEL A"); // no ';' at end!
+	arb_ramp();
+	send_command("SOUR:FUNC:USER A");
+	send_command("INIT:IMM");
+	//send_command("SOUR:LIST:SEGM:SEL?");
+
+}
+#endif
 
 /**
  * Read two integers from string like "45 56" or one integer. In latter case
@@ -166,38 +195,37 @@ void stringToTwoUchars(char *string, uchar *a, uchar *b) {
  * Handles builtin commands.
  */
 void handle_internal_commands(uchar *commandString) {
-	uchar sbuf[64];
 	uchar val, val1;
 
 	switch (buf[1]) {
 	case 'a':
 		/* set partner primary+secondary address */
 		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
-		sprintf(sbuf, "Set partner address, primary: %u , secondary: %u\n\r",
+		sprintf(buf, "Set partner address, primary: %u , secondary: %u\n\r",
 				val, val1);
-		uart_puts(sbuf);
+		uart_puts(buf);
 		gpib_set_partner_address(val, val1);
 		break;
 	case 's':
 		/* set partner secondary address */
 		val = atoi((char*) (&(buf[2])));
-		sprintf(sbuf, "Set partner secondary address to %u\n\r", val);
-		uart_puts(sbuf);
+		sprintf(buf, "Set partner secondary address to %u\n\r", val);
+		uart_puts(buf);
 		gpib_set_partner_secondary(val);
 		break;
 	case '+':
 		/* add device */
 		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
-		sprintf(sbuf, "Add device, primary: %u , secondary: %u\n\r", val, val1);
-		uart_puts(sbuf);
+		sprintf(buf, "Add device, primary: %u , secondary: %u\n\r", val, val1);
+		uart_puts(buf);
 		gpib_add_partner_address(val, val1);
 		break;
 	case '-':
 		/* add device */
 		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
-		sprintf(sbuf, "Remove device, primary: %u , secondary: %u\n\r", val,
+		sprintf(buf, "Remove device, primary: %u , secondary: %u\n\r", val,
 				val1);
-		uart_puts(sbuf);
+		uart_puts(buf);
 		gpib_remove_partner_address(val, val1);
 		break;
 	case 'x':
@@ -218,8 +246,15 @@ void handle_internal_commands(uchar *commandString) {
 		break;
 	case 'i':
 		gpib_info();
-		sprintf(sbuf, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
-		uart_puts(sbuf);
+		sprintf(buf, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
+		uart_puts(buf);
+		break;
+	case 'z':
+		uart_puts("arb\n\r");
+#ifdef ARB_TEST
+		arb_ramp();
+#endif
+		uart_puts("arb done\n\r");
 		break;
 	default:
 		uart_puts("unknown command\n\r");
@@ -636,16 +671,16 @@ uchar input_process(void) {
 void printHelp() {
 #ifdef WRITE
 	sprintf(buf,
-			"\n\rGPIB Controller (T/L/C) (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
+			"\n\rGPIB Controller (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
 			REVISION);
 	uart_puts(buf);
 #else
-	uart_puts("\n\rGPIB Listener Only (L) (Rev.%s) (c) spurtikus.de 2008-2015\n\r", REVISION);
+	uart_puts("\n\rGPIB Listener Only (Rev.%s) (c) spurtikus.de 2008-2015\n\r", REVISION);
 	uart_puts(buf);
 #endif
 	uart_puts("Internal commands:\n\r");
 	uart_puts(
-			".a <primary> [<secondary>] - set primary/secondary address of remote device\n\r");
+			".a <primary> [<secondary>] - set prim./second. address of remote device\n\r");
 	uart_puts(".s <secondary> - set secondary address of remote device\n\r");
 	uart_puts(
 			".+ <n> - add partner device address to list of known devices.\n\r");
