@@ -130,10 +130,15 @@
 #define ASCII_CODE_CR 0x0d
 #define ASCII_CODE_LF 0x0a
 
+/** values for send_command */
+#define SEND_PART 1
+#define SEND_FULL_CMD 2
+
 uchar input_process(void);
 void printHelp();
 void handle_internal_commands(uchar *commandString);
-uchar send_command(uchar *commandString) ;
+uchar send_command(uchar *commandString, uchar mode) ;
+void receiveAnswer();
 
 #define COMMAND_INPUT_BUFFER_SIZE 80
 /** buffers used for commands and output strings */
@@ -144,37 +149,10 @@ int buf_ptr = 0;
 /** set to 1 to do line echo of all chars received by controller */
 uint8_t rs232_remote_echo = 1;
 /** Xon/Xoff flow control flag */
-uint8_t xonXoffMode = 0;
+uint8_t xonXoffMode = 1;
 /** srq enabled mode */
 uint8_t srq_enabled = 1;
 
-#ifdef ARB_TEST
-void arb_ramp() {
-	uchar b[10];
-	double f;
-	//send_command("SOUR:LIST:SEGM:VOLT ");
-	for (int i=0; i<4096; i++) {
-		f=0.00122*(double)i;
-		sprintf(b, "%1.4f,", f);
-		uart_puts(b);
-		//gpib_write(b, 0);
-	}
-
-}
-void arb() {
-	send_command("*RST");
-	send_command("SOUR:ROSC:SOUR INT;");
-	send_command("SOUR:FREQ:FIX 1E3;");
-	send_command("SOUR:FUNC:SHAP USER;");
-	send_command("SOUR:VOLT:LEV:IMM:AMPL 5V");
-	send_command("SOUR:LIST:SEGM:SEL A"); // no ';' at end!
-	arb_ramp();
-	send_command("SOUR:FUNC:USER A");
-	send_command("INIT:IMM");
-	//send_command("SOUR:LIST:SEGM:SEL?");
-
-}
-#endif
 
 /**
  * Read two integers from string like "45 56" or one integer. In latter case
@@ -191,6 +169,12 @@ void stringToTwoUchars(char *string, uchar *a, uchar *b) {
 	}
 }
 
+void check_errors() {
+	char *error_cmd = "SYST:ERR?";
+	send_command(error_cmd, SEND_FULL_CMD);
+	receiveAnswer();
+
+}
 /**
  * Handles builtin commands.
  */
@@ -233,11 +217,11 @@ void handle_internal_commands(uchar *commandString) {
 		if (!xonXoffMode) {
 			xonXoffMode = 1;
 			uart_set_flow_control(FLOWCONTROL_XONXOFF);
-			uart_puts("xon/xoff flowcontrol on\n\r");
+			uart_puts_P("xon/xoff flowcontrol on\n\r");
 		} else {
 			xonXoffMode = 0;
 			uart_set_flow_control(FLOWCONTROL_NONE);
-			uart_puts("xon/xoff flowcontrol off\n\r");
+			uart_puts_P("xon/xoff flowcontrol off\n\r");
 		}
 		break;
 	case 'h':
@@ -249,15 +233,12 @@ void handle_internal_commands(uchar *commandString) {
 		sprintf(buf, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
 		uart_puts(buf);
 		break;
-	case 'z':
-		uart_puts("arb\n\r");
-#ifdef ARB_TEST
-		arb_ramp();
-#endif
-		uart_puts("arb done\n\r");
+	case 'e':
+		uart_puts_P("Check errors\n\r");
+		check_errors();
 		break;
 	default:
-		uart_puts("unknown command\n\r");
+		uart_puts_P("unknown command\n\r");
 		printHelp();
 		break;
 	}
@@ -265,10 +246,11 @@ void handle_internal_commands(uchar *commandString) {
 
 /**
  * Sends a command.
+ * Mode is SEND_FULL_CMD or SEND_PART
  *
  * Returns 1 if command is a query, 0 otherwise.
  */
-uchar send_command(uchar *commandString) {
+uchar send_command(uchar *commandString, uchar mode) {
 	uchar controlString[8];
 	uchar is_query;
 
@@ -297,7 +279,13 @@ uchar send_command(uchar *commandString) {
 	//uart_puts("\n\r");
 	// gpib bus write
 	// put out command to listeners
-	gpib_write(commandString, 0);
+	if (mode==SEND_FULL_CMD) {
+		// full cmd , we have C string where length can be calculated by gpib_write()
+		gpib_write(commandString, 0);
+	} else {
+		// partial command, we must give length value; buffer is full.
+		gpib_write(commandString, COMMAND_INPUT_BUFFER_SIZE-1);
+	}
 
 	// check if query or command only
 	if (strchr((char*) commandString, '?') != NULL) {
@@ -310,12 +298,16 @@ uchar send_command(uchar *commandString) {
 	return is_query;
 }
 
+/** if !=0 break lines received from gpib at that line position */
+uint8_t linebreak=80;
+
 /**
  * Receives answer after command was sent.
  */
 void receiveAnswer() {
 	uchar controlString[8];
 	uchar b, e;
+	uchar colptr=0;
 
 	// UNT and UNL
 	controlString[0] = G_CMD_UNT;
@@ -342,6 +334,10 @@ void receiveAnswer() {
 		e = gpib_receive(&b);
 		// write out character
 		uart_putc(b);
+		if (linebreak && (colptr++==linebreak)) {
+			uart_puts_P("\n\r");
+			colptr=0;
+		}
 		//sprintf((char*)buf,"%02x - %c\n\r", b, b);
 		//uart_puts((char*)buf);
 	} while (!e);
@@ -367,7 +363,7 @@ uchar srq_occured(int* old_time) {
 			// some time has passed - check if srq was set
 			srq = bit_is_clear(PIND, G_SRQ);
 			if (srq)
-				uart_puts("\n\rSRQ detected.\n\r");
+				uart_puts_P("\n\rSRQ detected.\n\r");
 		}
 	}
 	return srq;
@@ -382,9 +378,9 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 	uint8_t primary, secondary;
 
 	if (!gpib_serial_poll(&primary, &secondary)) {
-		uart_puts(
+		uart_puts_P(
 				"\n\rSRQ emitter is not in list of known devices. SRQ Ignored.\n\r");
-		uart_puts("\n\rSRQs are disabled now.\n\r");
+		uart_puts_P("\n\rSRQs are disabled now.\n\r");
 		srq_enabled = 0;
 		return command_ready;
 	}
@@ -443,6 +439,9 @@ int main(void) {
 	// init controller part - assign bus 
 	gpib_controller_assign(0x00);
 
+	if (xonXoffMode) {
+		uart_set_flow_control(FLOWCONTROL_XONXOFF);
+	}
 	/* controller loops forever:
 	 * 1. try to read command from user
 	 * 2. send user entered command, if available, to listeners (act as talker, set devices to listeners)
@@ -461,7 +460,7 @@ int main(void) {
 			command_ready = input_process();
 
 		if (command_ready) {
-			uart_puts("\n\r");
+			uart_puts_P("\n\r");
 		}
 
 		// check for internal commands
@@ -480,7 +479,7 @@ int main(void) {
 
 		// GPIB command. Check if a partner was defined.
 		if (command_ready && (gpib_get_partner_pad() == ADDRESS_NOT_SET)) {
-			uart_puts("Device address is not set. Can not send command.\n\r");
+			uart_puts_P("Device address is not set. Can not send command.\n\r");
 			// reset local vars for command string reading
 			command_ready = 0;
 			buf_ptr = 0;
@@ -492,7 +491,7 @@ int main(void) {
 			//uart_puts("\n\rGPIB command: ");
 			//uart_puts((char*) buf);
 			//uart_puts("\n\r");
-			is_query = send_command(buf);
+			is_query = send_command(buf, SEND_FULL_CMD);
 			// reset local vars for command string reading
 			command_ready = 0;
 			buf_ptr = 0;
@@ -505,7 +504,7 @@ int main(void) {
 			// reset for next command
 			is_query = 0;
 			// some devices do not send cr,lf at command end, so create it always itself
-			uart_puts("\n\r");
+			uart_puts_P("\n\r");
 			do_prompt = 1;
 		}
 
@@ -529,7 +528,7 @@ int main(void) {
 		e = gpib_receive(&b);
 		uart_putc(b);
 		if (e)
-		uart_puts("\n\rEOI\n\r");
+		uart_puts_P("\n\rEOI\n\r");
 
 		// input processing via rs232
 		input_process();
@@ -621,7 +620,7 @@ uchar process_char(uchar ch) {
 		} else {
 			if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
 				// send intermediate part of command.
-				send_command(buf);
+				send_command(buf, SEND_PART);
 				buf_ptr = 0;
 			} else {
 				// send intermediate part of command.
@@ -678,16 +677,16 @@ void printHelp() {
 	uart_puts("\n\rGPIB Listener Only (Rev.%s) (c) spurtikus.de 2008-2015\n\r", REVISION);
 	uart_puts(buf);
 #endif
-	uart_puts("Internal commands:\n\r");
+	uart_puts_P("Internal commands:\n\r");
 	uart_puts(
 			".a <primary> [<secondary>] - set prim./second. address of remote device\n\r");
-	uart_puts(".s <secondary> - set secondary address of remote device\n\r");
-	uart_puts(
+	uart_puts_P(".s <secondary> - set secondary address of remote device\n\r");
+	uart_puts_P(
 			".+ <n> - add partner device address to list of known devices.\n\r");
-	uart_puts(
+	uart_puts_P(
 			".- <n> - remove partner device address from list of known devices.\n\r");
-	uart_puts(".x - toggle Xon/Xoff flow control.\n\r");
-	uart_puts(".h - print help.\n\r");
-	uart_puts(".i - dump info about GPIB lines.\n\r");
+	uart_puts_P(".x - toggle Xon/Xoff flow control.\n\r");
+	uart_puts_P(".h - print help.\n\r");
+	uart_puts_P(".i - dump info about GPIB lines.\n\r");
 }
 

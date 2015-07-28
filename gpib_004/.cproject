@@ -54,11 +54,14 @@
 								<option id="de.innot.avreclipse.cppcompiler.option.debug.level.1455709612" name="Generate Debugging Info" superClass="de.innot.avreclipse.cppcompiler.option.debug.level"/>
 								<option id="de.innot.avreclipse.cppcompiler.option.optimize.766728397" name="Optimization Level" superClass="de.innot.avreclipse.cppcompiler.option.optimize"/>
 							</tool>
-							<tool id="de.innot.avreclipse.tool.linker.winavr.app.debug.387819532" name="AVR C Linker" superClass="de.innot.avreclipse.tool.linker.winavr.app.debug">
+							<tool commandLinePattern="${COMMAND} ${FLAGS} -u,vprintf ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="de.innot.avreclipse.tool.linker.winavr.app.debug.387819532" name="AVR C Linker" superClass="de.innot.avreclipse.tool.linker.winavr.app.debug">
 								<option id="de.innot.avreclipse.linker.option.genmap.999278941" name="Map Filename" superClass="de.innot.avreclipse.linker.option.genmap"/>
 								<option id="de.innot.avreclipse.linker.option.nosyms.473223834" name="Omit Symbols (-s)" superClass="de.innot.avreclipse.linker.option.nosyms"/>
-								<option id="de.innot.avreclipse.linker.option.otherlinkargs.1683666448" name="Other Arguments" superClass="de.innot.avreclipse.linker.option.otherlinkargs"/>
-								<option id="de.innot.avreclipse.linker.option.libs.786690799" name="Libraries (-l)" superClass="de.innot.avreclipse.linker.option.libs"/>
+								<option id="de.innot.avreclipse.linker.option.otherlinkargs.1683666448" name="Other Arguments" superClass="de.innot.avreclipse.linker.option.otherlinkargs" value="-u,vprintf" valueType="string"/>
+								<option id="de.innot.avreclipse.linker.option.libs.786690799" name="Libraries (-l)" superClass="de.innot.avreclipse.linker.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" value="printf_flt"/>
+									<listOptionValue builtIn="false" value="m"/>
+								</option>
 								<option id="de.innot.avreclipse.linker.option.libpath.1665228925" name="Libraries Path (-L)" superClass="de.innot.avreclipse.linker.option.libpath"/>
 								<option id="de.innot.avreclipse.linker.option.otherlink.1814647287" name="(-Xlinker) Options" superClass="de.innot.avreclipse.linker.option.otherlink"/>
 								<option id="de.innot.avreclipse.linker.option.otherobjs.248537452" name="Other Objects (*.o)" superClass="de.innot.avreclipse.linker.option.otherobjs"/>
@@ -768,8 +771,13 @@
 			</profile>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="refreshScope" versionNumber="1">
-		<resource resourceType="PROJECT" workspacePath="/gpib_004"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/gpib_004"/>
+		</configuration>
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/gpib_004"/>
+		</configuration>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
 </cproject>

@@ -46,7 +46,7 @@ all: gpib_004.elf secondary-outputs
 gpib_004.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: AVR C Linker'
-	avr-gcc -Wl,-Map,gpib_004.map -mmcu=atmega32 -o "gpib_004.elf" $(OBJS) $(USER_OBJS) $(LIBS)
+	avr-gcc -Wl,-Map,gpib_004.map -u,vprintf -mmcu=atmega32 -u,vprintf -o "gpib_004.elf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -264,7 +264,7 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 	uchar c;
 	int i;
 	int timeout;
-	//uchar buf[64];
+	uchar buf[128];
 
 	// set talks state. This is used by ISR to recognize own talk
 	// (controller must not talk to itself and must not take part in listener handshake when talking)
@@ -281,14 +281,19 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 		// then, length can be easily calculated
 		length = strlen((char*) bytes);
 	}
-	// for debugging print out
-	//	bytes[length]=0x00;
-	//	if (length>1)
-	//		sprintf( buf, "gpib_write: %s\n\r", (char *)bytes );
-	//	else 
-	//		sprintf( buf, "gpib_write: 0x%02x\n\r", bytes[0] );
-	//	uart_puts((char*)buf);
-
+	if (length > 1) {
+		// for debugging print out
+		for (i = 0; i < length; i++) {
+			buf[i] = bytes[i];
+		}
+		buf[i] = '\0';
+//		bytes[length]=0x00;
+//		if (length>1)
+//			sprintf( buf, "gpib_write: %s\n\r", (char *)bytes );
+//		else
+//			sprintf( buf, "gpib_write: 0x%02x\n\r", bytes[0] );
+		uart_puts((char*) buf);
+	}
 	// release EOI during transmission
 	release_bit(DDRD, PORTD, G_EOI);
 	// release DAV, data not valid anymore
@@ -504,8 +509,8 @@ void gpib_info(void) {
  */
 uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v) {
 	uchar b, e;
-	uchar primary = 0, secondary = 0, found = 0,
-			foundPhysical = ADDRESS_NOT_SET;
+	uchar primary = 0, secondary = 0, found = 0, foundPhysical =
+	ADDRESS_NOT_SET;
 	int i;
 
 	// send UNT and UNL commands (unlisten and untalk)
