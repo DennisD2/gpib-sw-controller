@@ -251,6 +251,144 @@ uchar gpib_cmd(uchar *bytes, int length) {
 }
 
 /**
+ * Emits prologue before writing to a listener.
+ *
+ */
+void gpib_write_prologue(uchar attention) {
+	// set talks state. This is used by ISR to recognize own talk
+	// (controller must not talk to itself and must not take part in listener handshake when talking)
+	controller.talks = 1;
+	if (attention) {
+		//uart_puts("\n\rgpib_controller_write()\n\r");
+		// assign ATN for commands
+		assign_bit(DDRD, PORTD, G_ATN);
+	}
+	// release EOI during transmission
+	release_bit(DDRD, PORTD, G_EOI);
+	// release DAV, data not valid anymore
+	release_bit(DDRD, PORTD, G_DAV);
+	// release NRFD (just to be sure)
+	release_bit(DDRD, PORTD, G_NRFD);
+}
+
+/**
+ * Emits epilogue after writing to a listener.
+ *
+ */
+void gpib_write_epilogue(uchar attention) {
+	if (attention) {
+		// assign ATN for commands
+		release_bit(DDRD, PORTD, G_ATN);
+	}
+	// clear talk state.Controller does not talk anymore.
+	controller.talks = 0;
+}
+
+/**
+ * Emits single byte to GPIB port pins.
+ */
+uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
+	int timeout;
+
+	// wait for NDAC assign from all listeners
+	release_bit(DDRD, PORTD, G_NDAC);
+#ifdef WITH_TIMEOUT
+	timeout = s + 5;
+	//gpib_info();
+	while ((PIND & _BV(G_NDAC)) && (s <= timeout)) {
+		if (s == timeout) {
+			uart_puts("\n\rError: NDAC timeout\n\r");
+			return 0xff;
+		}
+	}
+#else
+	loop_until_bit_is_clear(PIND,G_NDAC);
+#endif
+
+	DDRA = 0x00;
+	if (c & 0x01) {
+		assign_bit(DDRA, PORTA, PA0);
+	} else {
+		release_bit(DDRA, PORTA, PA0)
+	}
+	if (c & 0x02) {
+		assign_bit(DDRA, PORTA, PA1)
+	} else {
+		release_bit(DDRA, PORTA, PA1);
+	}
+	if (c & 0x04) {
+		assign_bit(DDRA, PORTA, PA2);
+	} else {
+		release_bit(DDRA, PORTA, PA2);
+	}
+	if (c & 0x08) {
+		assign_bit(DDRA, PORTA, PA3);
+	} else {
+		release_bit(DDRA, PORTA, PA3);
+	}
+	if (c & 0x10) {
+		assign_bit(DDRA, PORTA, PA4);
+	} else {
+		release_bit(DDRA, PORTA, PA4);
+	}
+	if (c & 0x20) {
+		assign_bit(DDRA, PORTA, PA5);
+	} else {
+		release_bit(DDRA, PORTA, PA5);
+	}
+	if (c & 0x40) {
+		assign_bit(DDRA, PORTA, PA6);
+	} else {
+		release_bit(DDRA, PORTA, PA6);
+	}
+	if (c & 0x80) {
+		assign_bit(DDRA, PORTA, PA7);
+	} else {
+		release_bit(DDRA, PORTA, PA7);
+	}
+
+	// wait until listeners release NRFD
+	//uart_puts("1");
+	release_bit(DDRD, PORTD, G_NRFD);
+#ifdef WITH_TIMEOUT
+	//gpib_info();
+	timeout = s + 5;
+	while (!(PIND & _BV(G_NRFD)) && (s <= timeout)) {
+		if (s == timeout) {
+			uart_puts("\n\rError: NRFD timeout\n\r");
+			return 0xff;
+		}
+	}
+#else
+	loop_until_bit_is_set(PIND,G_NRFD);
+#endif
+
+	// assign EOI during transmission of only last byte
+	if (isLastByte) {
+		//uart_puts("\n\rE\n\r");
+		assign_bit(DDRD, PORTD, G_EOI);
+	}
+
+	// assign DAV, data valid for listeners
+	assign_bit(DDRD, PORTD, G_DAV);
+
+	// wait for NDAC release
+	//uart_puts("2");
+	release_bit(DDRD, PORTD, G_NDAC);
+	loop_until_bit_is_set(PIND, G_NDAC);
+
+	// release DAV, data not valid anymore
+	release_bit(DDRD, PORTD, G_DAV);
+
+	// reset Port to all input
+	DDRA = 0x00;
+
+	//uart_puts("3\r\n");
+
+	return 0;
+}
+
+/**
  * Write byte array to the bus.
  * \brief Precondition: Device must be allowed to talk. For a controller, this means all
  * other devices have been set to be listeners.
@@ -263,23 +401,15 @@ uchar gpib_cmd(uchar *bytes, int length) {
 static uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 	uchar c;
 	int i;
-	int timeout;
 
-	// set talks state. This is used by ISR to recognize own talk
-	// (controller must not talk to itself and must not take part in listener handshake when talking)
-	controller.talks = 1;
-
-	if (attention) {
-		//uart_puts("\n\rgpib_controller_write()\n\r");
-		// assign ATN for commands
-		assign_bit(DDRD, PORTD, G_ATN);
-	}
+	gpib_write_prologue(attention);
 
 	if (length == 0) {
 		// length==0 means this is a common C string, null-terminated.
 		// then, length can be easily calculated
 		length = strlen((char*) bytes);
 	}
+
 //#define DEBUG_OUT
 #ifdef DEBUG_OUT
 	// debugging print out
@@ -296,134 +426,18 @@ static uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 		uart_puts((char*) buf);
 	}
 #endif
-	// release EOI during transmission
-	release_bit(DDRD, PORTD, G_EOI);
-	// release DAV, data not valid anymore
-	release_bit(DDRD, PORTD, G_DAV);
-	// release NRFD (just to be sure)
-	release_bit(DDRD, PORTD, G_NRFD);
 
-	// bytes[0] = 'a'
-	// bytes[1] = 'b'
-	// length = 2
 	for (i = 0; i < length; i++) {
-
 		// put data on bus
 		c = bytes[i];
 		//sprintf( buf, "char: %c\n\r", c );
 		//uart_puts(buf);		
 
-		release_bit(DDRD, PORTD, G_NDAC);
-		//uart_puts("0");
-		// wait for NDAC assign from all listeners
-#ifdef WITH_TIMEOUT
-		timeout = s + 5;
-		//gpib_info();
-		while ((PIND & _BV(G_NDAC)) && (s <= timeout)) {
-			if (s == timeout) {
-				uart_puts("\n\rError: NDAC timeout\n\r");
-				return 0xff;
-			}
-		}
-#else
-		loop_until_bit_is_clear(PIND,G_NDAC);
-#endif
-
-		DDRA = 0x00;
-		if (c & 0x01) {
-			assign_bit(DDRA, PORTA, PA0);
-		} else {
-			release_bit(DDRA, PORTA, PA0)
-		}
-
-		if (c & 0x02) {
-			assign_bit(DDRA, PORTA, PA1)
-		} else {
-			release_bit(DDRA, PORTA, PA1);
-		}
-
-		if (c & 0x04) {
-			assign_bit(DDRA, PORTA, PA2);
-		} else {
-			release_bit(DDRA, PORTA, PA2);
-		}
-
-		if (c & 0x08) {
-			assign_bit(DDRA, PORTA, PA3);
-		} else {
-			release_bit(DDRA, PORTA, PA3);
-		}
-
-		if (c & 0x10) {
-			assign_bit(DDRA, PORTA, PA4);
-		} else {
-			release_bit(DDRA, PORTA, PA4);
-		}
-
-		if (c & 0x20) {
-			assign_bit(DDRA, PORTA, PA5);
-		} else {
-			release_bit(DDRA, PORTA, PA5);
-		}
-
-		if (c & 0x40) {
-			assign_bit(DDRA, PORTA, PA6);
-		} else {
-			release_bit(DDRA, PORTA, PA6);
-		}
-
-		if (c & 0x80) {
-			assign_bit(DDRA, PORTA, PA7);
-		} else {
-			release_bit(DDRA, PORTA, PA7);
-		}
-
-		// wait until listeners release NRFD
-		//uart_puts("1");
-		release_bit(DDRD, PORTD, G_NRFD);
-#ifdef WITH_TIMEOUT
-		//gpib_info();
-		timeout = s + 5;
-		while (!(PIND & _BV(G_NRFD)) && (s <= timeout)) {
-			if (s == timeout) {
-				uart_puts("\n\rError: NRFD timeout\n\r");
-				return 0xff;
-			}
-		}
-#else
-		loop_until_bit_is_set(PIND,G_NRFD);
-#endif
-
-		// assign EOI during transmission of only last byte
-		if ((i == length - 1) && !attention) {
-			//uart_puts("\n\rE\n\r");
-			assign_bit(DDRD, PORTD, G_EOI);
-		}
-
-		// assign DAV, data valid for listeners
-		assign_bit(DDRD, PORTD, G_DAV);
-
-		// wait for NDAC release
-		//uart_puts("2");
-		release_bit(DDRD, PORTD, G_NDAC);
-		loop_until_bit_is_set(PIND, G_NDAC);
-
-		// release DAV, data not valid anymore
-		release_bit(DDRD, PORTD, G_DAV);
-
-		// reset Port to all input
-		DDRA = 0x00;
-
-		//uart_puts("3\r\n");
+		uchar isLastByte = (i == length - 1) && !attention;
+		_gpib_emit_byte(c, isLastByte);
 	}
 
-	if (attention) {
-		// assign ATN for commands
-		release_bit(DDRD, PORTD, G_ATN);
-	}
-
-	// clear talk state.Controller does not talk anymore.
-	controller.talks = 0;
+	gpib_write_epilogue(attention);
 
 	return 0x00;
 }
