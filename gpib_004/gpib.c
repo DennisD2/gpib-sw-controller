@@ -281,19 +281,21 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 		// then, length can be easily calculated
 		length = strlen((char*) bytes);
 	}
+//#define DEBUG_OUT
+#ifdef DEBUG_OUT
+	// debugging print out
 	if (length > 1) {
-		// for debugging print out
 		for (i = 0; i < length; i++) {
 			buf[i] = bytes[i];
 		}
 		buf[i] = '\0';
-//		bytes[length]=0x00;
-//		if (length>1)
-//			sprintf( buf, "gpib_write: %s\n\r", (char *)bytes );
-//		else
-//			sprintf( buf, "gpib_write: 0x%02x\n\r", bytes[0] );
+		uart_puts((char*) buf);
+	} else {
+		bytes[length] = 0x00;
+		sprintf(buf, "gpib_write: 0x%02x\n\r", bytes[0]);
 		uart_puts((char*) buf);
 	}
+#endif
 	// release EOI during transmission
 	release_bit(DDRD, PORTD, G_EOI);
 	// release DAV, data not valid anymore
