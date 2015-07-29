@@ -287,7 +287,7 @@ void gpib_write_epilogue(uchar attention) {
 /**
  * Emits single byte to GPIB port pins.
  */
-uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
+uchar gpib_write_byte(uchar c, uchar isLastByte) {
 	int timeout;
 
 	// wait for NDAC assign from all listeners
@@ -434,7 +434,7 @@ static uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 		//uart_puts(buf);		
 
 		uchar isLastByte = (i == length - 1) && !attention;
-		_gpib_emit_byte(c, isLastByte);
+		gpib_write_byte(c, isLastByte);
 	}
 
 	gpib_write_epilogue(attention);

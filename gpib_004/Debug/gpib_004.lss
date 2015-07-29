@@ -38,101 +38,101 @@ Disassembly of section .text:
       4c:	0c 94 86 01 	jmp	0x30c	; 0x30c <__bad_interrupt>
       50:	0c 94 86 01 	jmp	0x30c	; 0x30c <__bad_interrupt>
 
-00000054 <__c.1849>:
+00000054 <__c.1856>:
       54:	42 75 66 66 65 72 20 6f 76 65 72 66 6c 6f 77 20     Buffer overflow 
       64:	65 72 72 6f 72 3a 20 00                             error: .
 
-0000006c <__c.1847>:
+0000006c <__c.1854>:
       6c:	55 41 52 54 20 4f 76 65 72 72 75 6e 20 45 72 72     UART Overrun Err
       7c:	6f 72 3a 20 00                                      or: .
 
-00000081 <__c.1845>:
+00000081 <__c.1852>:
       81:	55 41 52 54 20 46 72 61 6d 65 20 45 72 72 6f 72     UART Frame Error
       91:	3a 20 00                                            : .
 
-00000094 <__c.1871>:
+00000094 <__c.1878>:
       94:	43 6f 6d 6d 61 6e 64 20 6f 76 65 72 66 6c 6f 77     Command overflow
       a4:	2e 00                                               ..
 
-000000a6 <__c.1943>:
+000000a6 <__c.1950>:
       a6:	75 6e 6b 6e 6f 77 6e 20 63 6f 6d 6d 61 6e 64 0a     unknown command.
       b6:	0d 00                                               ..
 
-000000b8 <__c.1940>:
+000000b8 <__c.1947>:
       b8:	43 68 65 63 6b 20 65 72 72 6f 72 73 0a 0d 00        Check errors...
 
-000000c7 <__c.1935>:
+000000c7 <__c.1942>:
       c7:	78 6f 6e 2f 78 6f 66 66 20 66 6c 6f 77 63 6f 6e     xon/xoff flowcon
       d7:	74 72 6f 6c 20 6f 66 66 0a 0d 00                    trol off...
 
-000000e2 <__c.1933>:
+000000e2 <__c.1940>:
       e2:	78 6f 6e 2f 78 6f 66 66 20 66 6c 6f 77 63 6f 6e     xon/xoff flowcon
       f2:	74 72 6f 6c 20 6f 6e 0a 0d 00                       trol on...
 
-000000fc <__c.2008>:
+000000fc <__c.2015>:
       fc:	0a 0d 00                                            ...
 
-000000ff <__c.2034>:
+000000ff <__c.2041>:
       ff:	0a 0d 53 52 51 20 64 65 74 65 63 74 65 64 2e 0a     ..SRQ detected..
      10f:	0d 00                                               ..
 
-00000111 <__c.2064>:
+00000111 <__c.2071>:
      111:	0a 0d 53 52 51 73 20 61 72 65 20 64 69 73 61 62     ..SRQs are disab
      121:	6c 65 64 20 6e 6f 77 2e 0a 0d 00                    led now....
 
-0000012c <__c.2062>:
+0000012c <__c.2069>:
      12c:	0a 0d 53 52 51 20 65 6d 69 74 74 65 72 20 69 73     ..SRQ emitter is
      13c:	20 6e 6f 74 20 69 6e 20 6c 69 73 74 20 6f 66 20      not in list of 
      14c:	6b 6e 6f 77 6e 20 64 65 76 69 63 65 73 2e 20 53     known devices. S
      15c:	52 51 20 49 67 6e 6f 72 65 64 2e 0a 0d 00           RQ Ignored....
 
-0000016a <__c.2096>:
+0000016a <__c.2103>:
      16a:	2e 69 20 2d 20 64 75 6d 70 20 69 6e 66 6f 20 61     .i - dump info a
      17a:	62 6f 75 74 20 47 50 49 42 20 6c 69 6e 65 73 2e     bout GPIB lines.
      18a:	0a 0d 00                                            ...
 
-0000018d <__c.2094>:
+0000018d <__c.2101>:
      18d:	2e 68 20 2d 20 70 72 69 6e 74 20 68 65 6c 70 2e     .h - print help.
      19d:	0a 0d 00                                            ...
 
-000001a0 <__c.2092>:
+000001a0 <__c.2099>:
      1a0:	2e 78 20 2d 20 74 6f 67 67 6c 65 20 58 6f 6e 2f     .x - toggle Xon/
      1b0:	58 6f 66 66 20 66 6c 6f 77 20 63 6f 6e 74 72 6f     Xoff flow contro
      1c0:	6c 2e 0a 0d 00                                      l....
 
-000001c5 <__c.2090>:
+000001c5 <__c.2097>:
      1c5:	2e 2d 20 3c 6e 3e 20 2d 20 72 65 6d 6f 76 65 20     .- <n> - remove 
      1d5:	70 61 72 74 6e 65 72 20 64 65 76 69 63 65 20 61     partner device a
      1e5:	64 64 72 65 73 73 20 66 72 6f 6d 20 6c 69 73 74     ddress from list
      1f5:	20 6f 66 20 6b 6e 6f 77 6e 20 64 65 76 69 63 65      of known device
      205:	73 2e 0a 0d 00                                      s....
 
-0000020a <__c.2088>:
+0000020a <__c.2095>:
      20a:	2e 2b 20 3c 6e 3e 20 2d 20 61 64 64 20 70 61 72     .+ <n> - add par
      21a:	74 6e 65 72 20 64 65 76 69 63 65 20 61 64 64 72     tner device addr
      22a:	65 73 73 20 74 6f 20 6c 69 73 74 20 6f 66 20 6b     ess to list of k
      23a:	6e 6f 77 6e 20 64 65 76 69 63 65 73 2e 0a 0d 00     nown devices....
 
-0000024a <__c.2086>:
+0000024a <__c.2093>:
      24a:	2e 73 20 3c 73 65 63 6f 6e 64 61 72 79 3e 20 2d     .s <secondary> -
      25a:	20 73 65 74 20 73 65 63 6f 6e 64 61 72 79 20 61      set secondary a
      26a:	64 64 72 65 73 73 20 6f 66 20 72 65 6d 6f 74 65     ddress of remote
      27a:	20 64 65 76 69 63 65 0a 0d 00                        device...
 
-00000284 <__c.2084>:
+00000284 <__c.2091>:
      284:	49 6e 74 65 72 6e 61 6c 20 63 6f 6d 6d 61 6e 64     Internal command
      294:	73 3a 0a 0d 00                                      s:...
 
-00000299 <__c.2109>:
+00000299 <__c.2116>:
      299:	0a 0d 00                                            ...
 
-0000029c <__c.2107>:
+0000029c <__c.2114>:
      29c:	44 65 76 69 63 65 20 61 64 64 72 65 73 73 20 69     Device address i
      2ac:	73 20 6e 6f 74 20 73 65 74 2e 20 43 61 6e 20 6e     s not set. Can n
      2bc:	6f 74 20 73 65 6e 64 20 63 6f 6d 6d 61 6e 64 2e     ot send command.
      2cc:	0a 0d 00                                            ...
 
-000002cf <__c.2105>:
+000002cf <__c.2112>:
      2cf:	0a 0d 00                                            ...
 
 000002d2 <__ctors_end>:
@@ -1879,16 +1879,16 @@ void gpib_write_epilogue(uchar attention) {
      e8a:	df 91       	pop	r29
      e8c:	08 95       	ret
 
-00000e8e <_gpib_emit_byte>:
+00000e8e <gpib_write_byte>:
 
 /**
  * Emits single byte to GPIB port pins.
  */
-uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
+uchar gpib_write_byte(uchar c, uchar isLastByte) {
      e8e:	df 93       	push	r29
      e90:	cf 93       	push	r28
-     e92:	00 d0       	rcall	.+0      	; 0xe94 <_gpib_emit_byte+0x6>
-     e94:	00 d0       	rcall	.+0      	; 0xe96 <_gpib_emit_byte+0x8>
+     e92:	00 d0       	rcall	.+0      	; 0xe94 <gpib_write_byte+0x6>
+     e94:	00 d0       	rcall	.+0      	; 0xe96 <gpib_write_byte+0x8>
      e96:	0f 92       	push	r0
      e98:	cd b7       	in	r28, 0x3d	; 61
      e9a:	de b7       	in	r29, 0x3e	; 62
@@ -1920,7 +1920,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      ec4:	05 96       	adiw	r24, 0x05	; 5
      ec6:	9a 83       	std	Y+2, r25	; 0x02
      ec8:	89 83       	std	Y+1, r24	; 0x01
-     eca:	10 c0       	rjmp	.+32     	; 0xeec <_gpib_emit_byte+0x5e>
+     eca:	10 c0       	rjmp	.+32     	; 0xeec <gpib_write_byte+0x5e>
 	//gpib_info();
 	while ((PIND & _BV(G_NDAC)) && (s <= timeout)) {
 		if (s == timeout) {
@@ -1931,7 +1931,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      ed6:	9a 81       	ldd	r25, Y+2	; 0x02
      ed8:	28 17       	cp	r18, r24
      eda:	39 07       	cpc	r19, r25
-     edc:	39 f4       	brne	.+14     	; 0xeec <_gpib_emit_byte+0x5e>
+     edc:	39 f4       	brne	.+14     	; 0xeec <gpib_write_byte+0x5e>
 			uart_puts("\n\rError: NDAC timeout\n\r");
      ede:	86 e9       	ldi	r24, 0x96	; 150
      ee0:	90 e0       	ldi	r25, 0x00	; 0
@@ -1939,7 +1939,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
 			return 0xff;
      ee6:	8f ef       	ldi	r24, 0xFF	; 255
      ee8:	8d 83       	std	Y+5, r24	; 0x05
-     eea:	f7 c1       	rjmp	.+1006   	; 0x12da <_gpib_emit_byte+0x44c>
+     eea:	f7 c1       	rjmp	.+1006   	; 0x12da <gpib_write_byte+0x44c>
 	// wait for NDAC assign from all listeners
 	release_bit(DDRD, PORTD, G_NDAC);
 #ifdef WITH_TIMEOUT
@@ -1954,7 +1954,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      ef6:	80 72       	andi	r24, 0x20	; 32
      ef8:	90 70       	andi	r25, 0x00	; 0
      efa:	00 97       	sbiw	r24, 0x00	; 0
-     efc:	49 f0       	breq	.+18     	; 0xf10 <_gpib_emit_byte+0x82>
+     efc:	49 f0       	breq	.+18     	; 0xf10 <gpib_write_byte+0x82>
      efe:	80 91 13 05 	lds	r24, 0x0513
      f02:	28 2f       	mov	r18, r24
      f04:	30 e0       	ldi	r19, 0x00	; 0
@@ -1962,7 +1962,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      f08:	9a 81       	ldd	r25, Y+2	; 0x02
      f0a:	82 17       	cp	r24, r18
      f0c:	93 07       	cpc	r25, r19
-     f0e:	f4 f6       	brge	.-68     	; 0xecc <_gpib_emit_byte+0x3e>
+     f0e:	f4 f6       	brge	.-68     	; 0xecc <gpib_write_byte+0x3e>
 	}
 #else
 	loop_until_bit_is_clear(PIND,G_NDAC);
@@ -1979,7 +1979,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      f1c:	81 70       	andi	r24, 0x01	; 1
      f1e:	90 70       	andi	r25, 0x00	; 0
      f20:	88 23       	and	r24, r24
-     f22:	b1 f0       	breq	.+44     	; 0xf50 <_gpib_emit_byte+0xc2>
+     f22:	b1 f0       	breq	.+44     	; 0xf50 <gpib_write_byte+0xc2>
 		assign_bit(DDRA, PORTA, PA0);
      f24:	ab e3       	ldi	r26, 0x3B	; 59
      f26:	b0 e0       	ldi	r27, 0x00	; 0
@@ -2002,7 +2002,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      f48:	80 81       	ld	r24, Z
      f4a:	8e 7f       	andi	r24, 0xFE	; 254
      f4c:	8c 93       	st	X, r24
-     f4e:	0e c0       	rjmp	.+28     	; 0xf6c <_gpib_emit_byte+0xde>
+     f4e:	0e c0       	rjmp	.+28     	; 0xf6c <gpib_write_byte+0xde>
 	} else {
 		release_bit(DDRA, PORTA, PA0)
      f50:	aa e3       	ldi	r26, 0x3A	; 58
@@ -2027,7 +2027,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      f72:	82 70       	andi	r24, 0x02	; 2
      f74:	90 70       	andi	r25, 0x00	; 0
      f76:	00 97       	sbiw	r24, 0x00	; 0
-     f78:	b1 f0       	breq	.+44     	; 0xfa6 <_gpib_emit_byte+0x118>
+     f78:	b1 f0       	breq	.+44     	; 0xfa6 <gpib_write_byte+0x118>
 		assign_bit(DDRA, PORTA, PA1)
      f7a:	ab e3       	ldi	r26, 0x3B	; 59
      f7c:	b0 e0       	ldi	r27, 0x00	; 0
@@ -2050,7 +2050,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      f9e:	80 81       	ld	r24, Z
      fa0:	8d 7f       	andi	r24, 0xFD	; 253
      fa2:	8c 93       	st	X, r24
-     fa4:	0e c0       	rjmp	.+28     	; 0xfc2 <_gpib_emit_byte+0x134>
+     fa4:	0e c0       	rjmp	.+28     	; 0xfc2 <gpib_write_byte+0x134>
 	} else {
 		release_bit(DDRA, PORTA, PA1);
      fa6:	aa e3       	ldi	r26, 0x3A	; 58
@@ -2075,7 +2075,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      fc8:	84 70       	andi	r24, 0x04	; 4
      fca:	90 70       	andi	r25, 0x00	; 0
      fcc:	00 97       	sbiw	r24, 0x00	; 0
-     fce:	b1 f0       	breq	.+44     	; 0xffc <_gpib_emit_byte+0x16e>
+     fce:	b1 f0       	breq	.+44     	; 0xffc <gpib_write_byte+0x16e>
 		assign_bit(DDRA, PORTA, PA2);
      fd0:	ab e3       	ldi	r26, 0x3B	; 59
      fd2:	b0 e0       	ldi	r27, 0x00	; 0
@@ -2098,7 +2098,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
      ff4:	80 81       	ld	r24, Z
      ff6:	8b 7f       	andi	r24, 0xFB	; 251
      ff8:	8c 93       	st	X, r24
-     ffa:	0e c0       	rjmp	.+28     	; 0x1018 <_gpib_emit_byte+0x18a>
+     ffa:	0e c0       	rjmp	.+28     	; 0x1018 <gpib_write_byte+0x18a>
 	} else {
 		release_bit(DDRA, PORTA, PA2);
      ffc:	aa e3       	ldi	r26, 0x3A	; 58
@@ -2123,7 +2123,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     101e:	88 70       	andi	r24, 0x08	; 8
     1020:	90 70       	andi	r25, 0x00	; 0
     1022:	00 97       	sbiw	r24, 0x00	; 0
-    1024:	b1 f0       	breq	.+44     	; 0x1052 <_gpib_emit_byte+0x1c4>
+    1024:	b1 f0       	breq	.+44     	; 0x1052 <gpib_write_byte+0x1c4>
 		assign_bit(DDRA, PORTA, PA3);
     1026:	ab e3       	ldi	r26, 0x3B	; 59
     1028:	b0 e0       	ldi	r27, 0x00	; 0
@@ -2146,7 +2146,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     104a:	80 81       	ld	r24, Z
     104c:	87 7f       	andi	r24, 0xF7	; 247
     104e:	8c 93       	st	X, r24
-    1050:	0e c0       	rjmp	.+28     	; 0x106e <_gpib_emit_byte+0x1e0>
+    1050:	0e c0       	rjmp	.+28     	; 0x106e <gpib_write_byte+0x1e0>
 	} else {
 		release_bit(DDRA, PORTA, PA3);
     1052:	aa e3       	ldi	r26, 0x3A	; 58
@@ -2171,7 +2171,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     1074:	80 71       	andi	r24, 0x10	; 16
     1076:	90 70       	andi	r25, 0x00	; 0
     1078:	00 97       	sbiw	r24, 0x00	; 0
-    107a:	b1 f0       	breq	.+44     	; 0x10a8 <_gpib_emit_byte+0x21a>
+    107a:	b1 f0       	breq	.+44     	; 0x10a8 <gpib_write_byte+0x21a>
 		assign_bit(DDRA, PORTA, PA4);
     107c:	ab e3       	ldi	r26, 0x3B	; 59
     107e:	b0 e0       	ldi	r27, 0x00	; 0
@@ -2194,7 +2194,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     10a0:	80 81       	ld	r24, Z
     10a2:	8f 7e       	andi	r24, 0xEF	; 239
     10a4:	8c 93       	st	X, r24
-    10a6:	0e c0       	rjmp	.+28     	; 0x10c4 <_gpib_emit_byte+0x236>
+    10a6:	0e c0       	rjmp	.+28     	; 0x10c4 <gpib_write_byte+0x236>
 	} else {
 		release_bit(DDRA, PORTA, PA4);
     10a8:	aa e3       	ldi	r26, 0x3A	; 58
@@ -2219,7 +2219,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     10ca:	80 72       	andi	r24, 0x20	; 32
     10cc:	90 70       	andi	r25, 0x00	; 0
     10ce:	00 97       	sbiw	r24, 0x00	; 0
-    10d0:	b1 f0       	breq	.+44     	; 0x10fe <_gpib_emit_byte+0x270>
+    10d0:	b1 f0       	breq	.+44     	; 0x10fe <gpib_write_byte+0x270>
 		assign_bit(DDRA, PORTA, PA5);
     10d2:	ab e3       	ldi	r26, 0x3B	; 59
     10d4:	b0 e0       	ldi	r27, 0x00	; 0
@@ -2242,7 +2242,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     10f6:	80 81       	ld	r24, Z
     10f8:	8f 7d       	andi	r24, 0xDF	; 223
     10fa:	8c 93       	st	X, r24
-    10fc:	0e c0       	rjmp	.+28     	; 0x111a <_gpib_emit_byte+0x28c>
+    10fc:	0e c0       	rjmp	.+28     	; 0x111a <gpib_write_byte+0x28c>
 	} else {
 		release_bit(DDRA, PORTA, PA5);
     10fe:	aa e3       	ldi	r26, 0x3A	; 58
@@ -2267,7 +2267,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     1120:	80 74       	andi	r24, 0x40	; 64
     1122:	90 70       	andi	r25, 0x00	; 0
     1124:	00 97       	sbiw	r24, 0x00	; 0
-    1126:	b1 f0       	breq	.+44     	; 0x1154 <_gpib_emit_byte+0x2c6>
+    1126:	b1 f0       	breq	.+44     	; 0x1154 <gpib_write_byte+0x2c6>
 		assign_bit(DDRA, PORTA, PA6);
     1128:	ab e3       	ldi	r26, 0x3B	; 59
     112a:	b0 e0       	ldi	r27, 0x00	; 0
@@ -2290,7 +2290,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     114c:	80 81       	ld	r24, Z
     114e:	8f 7b       	andi	r24, 0xBF	; 191
     1150:	8c 93       	st	X, r24
-    1152:	0e c0       	rjmp	.+28     	; 0x1170 <_gpib_emit_byte+0x2e2>
+    1152:	0e c0       	rjmp	.+28     	; 0x1170 <gpib_write_byte+0x2e2>
 	} else {
 		release_bit(DDRA, PORTA, PA6);
     1154:	aa e3       	ldi	r26, 0x3A	; 58
@@ -2311,7 +2311,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
 	if (c & 0x80) {
     1170:	8b 81       	ldd	r24, Y+3	; 0x03
     1172:	88 23       	and	r24, r24
-    1174:	b4 f4       	brge	.+44     	; 0x11a2 <_gpib_emit_byte+0x314>
+    1174:	b4 f4       	brge	.+44     	; 0x11a2 <gpib_write_byte+0x314>
 		assign_bit(DDRA, PORTA, PA7);
     1176:	ab e3       	ldi	r26, 0x3B	; 59
     1178:	b0 e0       	ldi	r27, 0x00	; 0
@@ -2334,7 +2334,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     119a:	80 81       	ld	r24, Z
     119c:	8f 77       	andi	r24, 0x7F	; 127
     119e:	8c 93       	st	X, r24
-    11a0:	0e c0       	rjmp	.+28     	; 0x11be <_gpib_emit_byte+0x330>
+    11a0:	0e c0       	rjmp	.+28     	; 0x11be <gpib_write_byte+0x330>
 	} else {
 		release_bit(DDRA, PORTA, PA7);
     11a2:	aa e3       	ldi	r26, 0x3A	; 58
@@ -2379,7 +2379,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     11e2:	05 96       	adiw	r24, 0x05	; 5
     11e4:	9a 83       	std	Y+2, r25	; 0x02
     11e6:	89 83       	std	Y+1, r24	; 0x01
-    11e8:	10 c0       	rjmp	.+32     	; 0x120a <_gpib_emit_byte+0x37c>
+    11e8:	10 c0       	rjmp	.+32     	; 0x120a <gpib_write_byte+0x37c>
 	while (!(PIND & _BV(G_NRFD)) && (s <= timeout)) {
 		if (s == timeout) {
     11ea:	80 91 13 05 	lds	r24, 0x0513
@@ -2389,7 +2389,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     11f4:	9a 81       	ldd	r25, Y+2	; 0x02
     11f6:	28 17       	cp	r18, r24
     11f8:	39 07       	cpc	r19, r25
-    11fa:	39 f4       	brne	.+14     	; 0x120a <_gpib_emit_byte+0x37c>
+    11fa:	39 f4       	brne	.+14     	; 0x120a <gpib_write_byte+0x37c>
 			uart_puts("\n\rError: NRFD timeout\n\r");
     11fc:	8e ea       	ldi	r24, 0xAE	; 174
     11fe:	90 e0       	ldi	r25, 0x00	; 0
@@ -2397,7 +2397,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
 			return 0xff;
     1204:	8f ef       	ldi	r24, 0xFF	; 255
     1206:	8d 83       	std	Y+5, r24	; 0x05
-    1208:	68 c0       	rjmp	.+208    	; 0x12da <_gpib_emit_byte+0x44c>
+    1208:	68 c0       	rjmp	.+208    	; 0x12da <gpib_write_byte+0x44c>
 	//uart_puts("1");
 	release_bit(DDRD, PORTD, G_NRFD);
 #ifdef WITH_TIMEOUT
@@ -2412,7 +2412,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     1214:	88 70       	andi	r24, 0x08	; 8
     1216:	90 70       	andi	r25, 0x00	; 0
     1218:	00 97       	sbiw	r24, 0x00	; 0
-    121a:	49 f4       	brne	.+18     	; 0x122e <_gpib_emit_byte+0x3a0>
+    121a:	49 f4       	brne	.+18     	; 0x122e <gpib_write_byte+0x3a0>
     121c:	80 91 13 05 	lds	r24, 0x0513
     1220:	28 2f       	mov	r18, r24
     1222:	30 e0       	ldi	r19, 0x00	; 0
@@ -2420,7 +2420,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     1226:	9a 81       	ldd	r25, Y+2	; 0x02
     1228:	82 17       	cp	r24, r18
     122a:	93 07       	cpc	r25, r19
-    122c:	f4 f6       	brge	.-68     	; 0x11ea <_gpib_emit_byte+0x35c>
+    122c:	f4 f6       	brge	.-68     	; 0x11ea <gpib_write_byte+0x35c>
 #else
 	loop_until_bit_is_set(PIND,G_NRFD);
 #endif
@@ -2429,7 +2429,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
 	if (isLastByte) {
     122e:	8c 81       	ldd	r24, Y+4	; 0x04
     1230:	88 23       	and	r24, r24
-    1232:	a9 f0       	breq	.+42     	; 0x125e <_gpib_emit_byte+0x3d0>
+    1232:	a9 f0       	breq	.+42     	; 0x125e <gpib_write_byte+0x3d0>
 		//uart_puts("\n\rE\n\r");
 		assign_bit(DDRD, PORTD, G_EOI);
     1234:	a2 e3       	ldi	r26, 0x32	; 50
@@ -2505,7 +2505,7 @@ uchar _gpib_emit_byte(uchar c, uchar isLastByte) {
     12ae:	80 72       	andi	r24, 0x20	; 32
     12b0:	90 70       	andi	r25, 0x00	; 0
     12b2:	00 97       	sbiw	r24, 0x00	; 0
-    12b4:	b9 f3       	breq	.-18     	; 0x12a4 <_gpib_emit_byte+0x416>
+    12b4:	b9 f3       	breq	.-18     	; 0x12a4 <gpib_write_byte+0x416>
 
 	// release DAV, data not valid anymore
 	release_bit(DDRD, PORTD, G_DAV);
@@ -2633,10 +2633,10 @@ static uchar _gpib_write(uchar *bytes, int length, uchar attention) {
     1362:	1a 86       	std	Y+10, r1	; 0x0a
     1364:	9a 85       	ldd	r25, Y+10	; 0x0a
     1366:	99 83       	std	Y+1, r25	; 0x01
-		_gpib_emit_byte(c, isLastByte);
+		gpib_write_byte(c, isLastByte);
     1368:	8c 81       	ldd	r24, Y+4	; 0x04
     136a:	69 81       	ldd	r22, Y+1	; 0x01
-    136c:	0e 94 47 07 	call	0xe8e	; 0xe8e <_gpib_emit_byte>
+    136c:	0e 94 47 07 	call	0xe8e	; 0xe8e <gpib_write_byte>
 		sprintf(buf, "gpib_write: 0x%02x\n\r", bytes[0]);
 		uart_puts((char*) buf);
 	}
@@ -2655,9 +2655,9 @@ static uchar _gpib_write(uchar *bytes, int length, uchar attention) {
     1382:	28 17       	cp	r18, r24
     1384:	39 07       	cpc	r19, r25
     1386:	8c f2       	brlt	.-94     	; 0x132a <_gpib_write+0x3e>
-		uchar isLastByte = (i == length - 1) && !attention;
-		_gpib_emit_byte(c, isLastByte);
 
+		uchar isLastByte = (i == length - 1) && !attention;
+		gpib_write_byte(c, isLastByte);
 	}
 
 	gpib_write_epilogue(attention);

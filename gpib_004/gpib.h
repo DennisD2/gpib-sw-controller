@@ -98,6 +98,10 @@ extern uchar gpib_receive(uchar *byte);
 // talker functions
 extern uchar gpib_write(uchar *bytes, int length);
 
+extern void gpib_write_epilogue(uchar attention);
+extern uchar gpib_write_byte(uchar c, uchar isLastByte);
+extern void gpib_write_prologue(uchar attention) ;
+
 // just for code testing
 extern void gpib_info(void);
 

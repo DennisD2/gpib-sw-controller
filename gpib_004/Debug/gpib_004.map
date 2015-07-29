@@ -294,9 +294,9 @@ LOAD /home/dennis/arduino-1.0.5/hardware/tools/avr/bin/../lib/gcc/avr/4.3.2/avr5
  .text.gpib_write_epilogue
                 0x0000000000000e54       0x3a ./gpib.o
                 0x0000000000000e54                gpib_write_epilogue
- .text._gpib_emit_byte
+ .text.gpib_write_byte
                 0x0000000000000e8e      0x45e ./gpib.o
-                0x0000000000000e8e                _gpib_emit_byte
+                0x0000000000000e8e                gpib_write_byte
  .text._gpib_write
                 0x00000000000012ec       0xb6 ./gpib.o
  .text.gpib_info
