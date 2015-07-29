@@ -49,7 +49,7 @@ typedef struct {
 /** controller object. Not to be accessed outside gpib.c */
 static gpib_controller_t controller;
 
-uchar _gpib_write(uchar *bytes, int length, uchar attention);
+static uchar _gpib_write(uchar *bytes, int length, uchar attention);
 
 /**
  * Open Collector bit handling.
@@ -260,11 +260,10 @@ uchar gpib_cmd(uchar *bytes, int length) {
  * the string is calculated internally.
  * \param attention attention tur means assign ATN signal line during write.
  */
-uchar _gpib_write(uchar *bytes, int length, uchar attention) {
+static uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 	uchar c;
 	int i;
 	int timeout;
-	uchar buf[128];
 
 	// set talks state. This is used by ISR to recognize own talk
 	// (controller must not talk to itself and must not take part in listener handshake when talking)
@@ -284,6 +283,7 @@ uchar _gpib_write(uchar *bytes, int length, uchar attention) {
 //#define DEBUG_OUT
 #ifdef DEBUG_OUT
 	// debugging print out
+	uchar buf[128];
 	if (length > 1) {
 		for (i = 0; i < length; i++) {
 			buf[i] = bytes[i];
