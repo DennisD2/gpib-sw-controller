@@ -153,6 +153,33 @@ uint8_t xonXoffMode = 1;
 /** srq enabled mode */
 uint8_t srq_enabled = 1;
 
+#ifdef ARB_TEST
+void arb_ramp() {
+	uchar b[10];
+	double f;
+	//send_command("SOUR:LIST:SEGM:VOLT ");
+	for (int i=0; i<4096; i++) {
+		f=0.00122*(double)i;
+		sprintf(b, "%1.4f,", f);
+		uart_puts(b);
+		//gpib_write(b, 0);
+	}
+
+}
+void arb() {
+	send_command("*RST");
+	send_command("SOUR:ROSC:SOUR INT;");
+	send_command("SOUR:FREQ:FIX 1E3;");
+	send_command("SOUR:FUNC:SHAP USER;");
+	send_command("SOUR:VOLT:LEV:IMM:AMPL 5V");
+	send_command("SOUR:LIST:SEGM:SEL A"); // no ';' at end!
+	arb_ramp();
+	send_command("SOUR:FUNC:USER A");
+	send_command("INIT:IMM");
+	//send_command("SOUR:LIST:SEGM:SEL?");
+
+}
+#endif
 
 /**
  * Read two integers from string like "45 56" or one integer. In latter case
@@ -237,6 +264,13 @@ void handle_internal_commands(uchar *commandString) {
 		uart_puts_P("Check errors\n\r");
 		check_errors();
 		break;
+#ifdef ARB_TEST
+	case 'z':
+		uart_puts("arb\n\r");
+		arb_ramp();
+		uart_puts("arb done\n\r");
+		break;
+#endif
 	default:
 		uart_puts_P("unknown command\n\r");
 		printHelp();
