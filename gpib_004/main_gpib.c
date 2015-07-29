@@ -152,6 +152,8 @@ uint8_t rs232_remote_echo = 1;
 uint8_t xonXoffMode = 1;
 /** srq enabled mode */
 uint8_t srq_enabled = 1;
+/** if !=0 break lines received from gpib at that line position */
+uint8_t linebreak=80;
 
 #ifdef ARB_TEST
 void arb_ramp() {
@@ -185,7 +187,7 @@ void arb() {
  * Read two integers from string like "45 56" or one integer. In latter case
  * the second integer is initialized with a special value.
  */
-void stringToTwoUchars(char *string, uchar *a, uchar *b) {
+static void stringToTwoUchars(char *string, uchar *a, uchar *b) {
 	char *token = strtok(string, " ");
 	*a = atoi((char*) token);
 	token = strtok(NULL, " ");
@@ -196,12 +198,150 @@ void stringToTwoUchars(char *string, uchar *a, uchar *b) {
 	}
 }
 
+/**
+ * Checks for errors.
+ *
+ * Reads error queue first entry.
+ * TODO: read complete queue in while loop.
+ *
+ */
 void check_errors() {
 	char *error_cmd = "SYST:ERR?";
 	send_command(error_cmd, SEND_FULL_CMD);
 	receiveAnswer();
-
 }
+
+/**
+ * Reads in character into parameter c. Checks for errors and prints them out.
+ * Returns 0 if there is no char to read, 1 if there was a char read in.
+ */
+uchar input_char(uchar *ch) {
+	unsigned int c;
+	/*
+	 * Get received character from ringbuffer
+	 * uart_getc() returns in the lower byte the received character and
+	 * in the higher byte (bitmask) the last receive error
+	 * UART_NO_DATA is returned when no data is available.
+	 *
+	 */
+	c = uart_getc();
+	if (c & UART_NO_DATA) {
+		// no data available from UART
+		return 0;
+	}
+	// make uchar from character in int value
+	*ch = (uchar) c;
+
+	/*
+	 * new data available from UART
+	 * check for Frame or Overrun error
+	 */
+	if (c & UART_FRAME_ERROR) {
+		/* Framing Error detected, i.e no stop bit detected */
+		uart_puts_P("UART Frame Error: ");
+	}
+	if (c & UART_OVERRUN_ERROR) {
+		/*
+		 * Overrun, a character already present in the UART UDR register was
+		 * not read by the interrupt handler before the next character arrived,
+		 * one or more received characters have been dropped
+		 */
+		uart_puts_P("UART Overrun Error: ");
+	}
+	if (c & UART_BUFFER_OVERFLOW) {
+		/*
+		 * We are not reading the receive buffer fast enough,
+		 * one or more received character have been dropped
+		 */
+		uart_puts_P("Buffer overflow error: ");
+	}
+	return 1;
+}
+
+/**
+ * Process input char.
+ * Echo if required, add char to buffer if possible.
+ * If a CR is read command end is suspected.
+ * If buffer is full then the following happens:
+ * a) xon/xoff mode forward buffer to GPIB
+ * b) no flow control: prints error message that input buffer is full.
+ *
+ * Returns 1 if command end is detected, 0 otherwise.
+ */
+uchar process_char(uchar ch) {
+	uchar ret = 0;
+	/*
+	 * send received character back depending on global flag
+	 */
+	if (rs232_remote_echo) {
+		uart_putc((unsigned char) ch);
+	}
+
+	// if input buffer is not full, add char
+	if (buf_ptr < COMMAND_INPUT_BUFFER_SIZE - 1) {
+		buf[buf_ptr++] = ch;
+		buf[buf_ptr] = '\0';
+	}
+
+	// if command ends or buffer is full ...
+	if (ch == ASCII_CODE_CR || buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
+
+		if (ch == ASCII_CODE_CR) {
+			// adjust string terminator
+			buf[--buf_ptr] = '\0';
+			// let calling function send last command part (or command itself)
+			ret = 1;
+		} else {
+			if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
+				// send intermediate part of command.
+				send_command(buf, SEND_PART);
+				buf_ptr = 0;
+			} else {
+				// send intermediate part of command.
+				uart_puts_P("Command overflow.");
+				buf_ptr = 0;
+			}
+		}
+	}
+	return ret;
+}
+
+/**
+ * Processing user input
+ * \brief Read in user input via rs232 using peter fleurys UART library.
+ *
+ * Idea for code below: if xon/xoff flow control, we assume large command line.
+ * then stay in this function, get all chars in, send them with gpib_write() in parts.
+ *
+ * If we get last part (CR received) set ret to one and return. Then main() will send the
+ * last part.
+ * This approach handles small single line commands (needing no flow control) and large
+ * multi-line commands if flow control is xon/xoff.
+ *
+ * \returns The character read in
+ */
+uchar input_process(void) {
+	uchar ch, ret = 0;
+
+	if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
+		while (!ret) {
+			// if nothing can be read in, return
+			if (!input_char(&ch)) {
+				return 0;
+			}
+			ret = process_char(ch);
+		}
+	} else {
+		// if nothing can be read in, return
+		if (!input_char(&ch)) {
+			return 0;
+		}
+		ret = process_char(ch);
+	}
+	return ret;
+}
+
+
 /**
  * Handles builtin commands.
  */
@@ -332,9 +472,6 @@ uchar send_command(uchar *commandString, uchar mode) {
 	return is_query;
 }
 
-/** if !=0 break lines received from gpib at that line position */
-uint8_t linebreak=80;
-
 /**
  * Receives answer after command was sent.
  */
@@ -433,6 +570,29 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 		command_ready = 1;
 	}
 	return command_ready;
+}
+
+void printHelp() {
+#ifdef WRITE
+	sprintf(buf,
+			"\n\rGPIB Controller (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
+			REVISION);
+	uart_puts(buf);
+#else
+	uart_puts("\n\rGPIB Listener Only (Rev.%s) (c) spurtikus.de 2008-2015\n\r", REVISION);
+	uart_puts(buf);
+#endif
+	uart_puts_P("Internal commands:\n\r");
+	uart_puts(
+			".a <primary> [<secondary>] - set prim./second. address of remote device\n\r");
+	uart_puts_P(".s <secondary> - set secondary address of remote device\n\r");
+	uart_puts_P(
+			".+ <n> - add partner device address to list of known devices.\n\r");
+	uart_puts_P(
+			".- <n> - remove partner device address from list of known devices.\n\r");
+	uart_puts_P(".x - toggle Xon/Xoff flow control.\n\r");
+	uart_puts_P(".h - print help.\n\r");
+	uart_puts_P(".i - dump info about GPIB lines.\n\r");
 }
 
 /**
@@ -570,157 +730,3 @@ int main(void) {
 	}
 #endif
 }
-
-/**
- * Reads in character into parameter c. Checks for errors and prints them out.
- * Returns 0 if there is no char to read, 1 if there was a char read in.
- */
-uchar input_char(uchar *ch) {
-	unsigned int c;
-	/*
-	 * Get received character from ringbuffer
-	 * uart_getc() returns in the lower byte the received character and
-	 * in the higher byte (bitmask) the last receive error
-	 * UART_NO_DATA is returned when no data is available.
-	 *
-	 */
-	c = uart_getc();
-	if (c & UART_NO_DATA) {
-		// no data available from UART
-		return 0;
-	}
-	// make uchar from character in int value
-	*ch = (uchar) c;
-
-	/*
-	 * new data available from UART
-	 * check for Frame or Overrun error
-	 */
-	if (c & UART_FRAME_ERROR) {
-		/* Framing Error detected, i.e no stop bit detected */
-		uart_puts_P("UART Frame Error: ");
-	}
-	if (c & UART_OVERRUN_ERROR) {
-		/*
-		 * Overrun, a character already present in the UART UDR register was
-		 * not read by the interrupt handler before the next character arrived,
-		 * one or more received characters have been dropped
-		 */
-		uart_puts_P("UART Overrun Error: ");
-	}
-	if (c & UART_BUFFER_OVERFLOW) {
-		/*
-		 * We are not reading the receive buffer fast enough,
-		 * one or more received character have been dropped
-		 */
-		uart_puts_P("Buffer overflow error: ");
-	}
-	return 1;
-}
-
-/**
- * Process input char.
- * Echo if required, add char to buffer if possible.
- * If a CR is read command end is suspected.
- * If buffer is full then the following happens:
- * a) xon/xoff mode forward buffer to GPIB
- * b) no flow control: prints error message that input buffer is full.
- *
- * Returns 1 if command end is detected, 0 otherwise.
- */
-uchar process_char(uchar ch) {
-	uchar ret = 0;
-	/*
-	 * send received character back depending on global flag
-	 */
-	if (rs232_remote_echo) {
-		uart_putc((unsigned char) ch);
-	}
-
-	// if input buffer is not full, add char
-	if (buf_ptr < COMMAND_INPUT_BUFFER_SIZE - 1) {
-		buf[buf_ptr++] = ch;
-		buf[buf_ptr] = '\0';
-	}
-
-	// if command ends or buffer is full ...
-	if (ch == ASCII_CODE_CR || buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
-
-		if (ch == ASCII_CODE_CR) {
-			// adjust string terminator
-			buf[--buf_ptr] = '\0';
-			// let calling function send last command part (or command itself)
-			ret = 1;
-		} else {
-			if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
-				// send intermediate part of command.
-				send_command(buf, SEND_PART);
-				buf_ptr = 0;
-			} else {
-				// send intermediate part of command.
-				uart_puts_P("Command overflow.");
-				buf_ptr = 0;
-			}
-		}
-	}
-	return ret;
-}
-
-/**
- * Processing user input
- * \brief Read in user input via rs232 using peter fleurys UART library.
- *
- * Idea for code below: if xon/xoff flow control, we assume large command line.
- * then stay in this function, get all chars in, send them with gpib_write() in parts.
- *
- * If we get last part (CR received) set ret to one and return. Then main() will send the
- * last part.
- * This approach handles small single line commands (needing no flow control) and large
- * multi-line commands if flow control is xon/xoff.
- *
- * \returns The character read in
- */
-uchar input_process(void) {
-	uchar ch, ret = 0;
-
-	if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
-		while (!ret) {
-			// if nothing can be read in, return
-			if (!input_char(&ch)) {
-				return 0;
-			}
-			ret = process_char(ch);
-		}
-	} else {
-		// if nothing can be read in, return
-		if (!input_char(&ch)) {
-			return 0;
-		}
-		ret = process_char(ch);
-	}
-	return ret;
-}
-
-void printHelp() {
-#ifdef WRITE
-	sprintf(buf,
-			"\n\rGPIB Controller (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
-			REVISION);
-	uart_puts(buf);
-#else
-	uart_puts("\n\rGPIB Listener Only (Rev.%s) (c) spurtikus.de 2008-2015\n\r", REVISION);
-	uart_puts(buf);
-#endif
-	uart_puts_P("Internal commands:\n\r");
-	uart_puts(
-			".a <primary> [<secondary>] - set prim./second. address of remote device\n\r");
-	uart_puts_P(".s <secondary> - set secondary address of remote device\n\r");
-	uart_puts_P(
-			".+ <n> - add partner device address to list of known devices.\n\r");
-	uart_puts_P(
-			".- <n> - remove partner device address from list of known devices.\n\r");
-	uart_puts_P(".x - toggle Xon/Xoff flow control.\n\r");
-	uart_puts_P(".h - print help.\n\r");
-	uart_puts_P(".i - dump info about GPIB lines.\n\r");
-}
-
