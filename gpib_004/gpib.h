@@ -77,11 +77,9 @@
 
 // management functions for controller
 extern void gpib_init(void);
-
-extern void gpib_prepare_write() ;
-extern void gpib_prepare_read() ;
 extern void gpib_untalkUnlisten();
-
+extern void gpib_write_epilogue(uchar attention);
+extern void gpib_write_prologue(uchar attention) ;
 
 extern void gpib_set_flavour(uchar flavour);
 extern uchar gpib_get_flavour(void);
@@ -102,17 +100,14 @@ extern uchar gpib_remove_partner_address(uchar primary, uchar secondary);
 extern void gpib_clear_partners();
 
 // listener functions
+extern void gpib_prepare_read() ;
 extern uchar gpib_receive(uchar *byte);
 
 // talker functions
-extern uchar gpib_write(uchar *bytes, int length);
-
-extern void gpib_write_epilogue(uchar attention);
+extern void gpib_prepare_write() ;
 extern uchar gpib_write_byte(uchar c, uchar isLastByte);
-extern void gpib_write_prologue(uchar attention) ;
 extern void gpib_write_string(uchar *s);
 extern void gpib_write_command(uchar *s);
-
 
 // just for code testing
 extern void gpib_info(void);

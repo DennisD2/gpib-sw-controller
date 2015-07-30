@@ -49,8 +49,6 @@ typedef struct {
 /** controller object. Not to be accessed outside gpib.c */
 static gpib_controller_t controller;
 
-static uchar _gpib_write(uchar *bytes, int length, uchar attention);
-
 /**
  * Open Collector bit handling.
  * release : means set to HIGH.
@@ -288,21 +286,59 @@ void gpib_controller_release(void) {
 }
 
 /**
- * Write GPIB string to bus
- * \brief See _gpib_write() for further information.
- */
-uchar gpib_write(uchar *bytes, int length) {
-	// set attention arg false for ordinary strings
-	return _gpib_write(bytes, length, (uchar) 0);
-}
-
-/**
  * Write GPIB command to bus
- * \brief See _gpib_write() for further information.
- */
+ *
+ * \brief Precondition: Device must be allowed to talk. For a controller, this means all
+ * other devices have been set to be listeners.
+ * \param bytes byte array containing bytes to be send
+ * \param length length of valid bytes in byte array or zero.
+ * for binary data, lenght must be defined. For strings, length can be set to zero. Then the length of
+ * the string is calculated internally.
+  */
 uchar gpib_cmd(uchar *bytes, int length) {
+	uchar c;
+	int i;
 	// set attention arg true for commands
-	return _gpib_write(bytes, length, (uchar) 1);
+	uchar attention = 1;
+
+	gpib_write_prologue(attention);
+
+	if (length == 0) {
+		// length==0 means this is a common C string, null-terminated.
+		// then, length can be easily calculated
+		length = strlen((char*) bytes);
+	}
+
+//#define DEBUG_OUT
+#ifdef DEBUG_OUT
+	// debugging print out
+	uchar buf[128];
+	if (length > 1) {
+		for (i = 0; i < length; i++) {
+			buf[i] = bytes[i];
+		}
+		buf[i] = '\0';
+		uart_puts((char*) buf);
+	} else {
+		bytes[length] = 0x00;
+		sprintf(buf, "gpib_write: 0x%02x\n\r", bytes[0]);
+		uart_puts((char*) buf);
+	}
+#endif
+
+	for (i = 0; i < length; i++) {
+		// put data on bus
+		c = bytes[i];
+		//sprintf( buf, "char: %c\n\r", c );
+		//uart_puts(buf);
+
+		uchar isLastByte = (i == length - 1) && !attention;
+		gpib_write_byte(c, isLastByte);
+	}
+
+	gpib_write_epilogue(attention);
+
+	return 0x00;
 }
 
 /**
@@ -470,59 +506,6 @@ uchar gpib_write_byte(uchar c, uchar isLastByte) {
 	return 0;
 }
 
-/**
- * Write byte array to the bus.
- * \brief Precondition: Device must be allowed to talk. For a controller, this means all
- * other devices have been set to be listeners.
- * \param bytes byte array containing bytes to be send
- * \param length length of valid bytes in byte array or zero.
- * for binary data, lenght must be defined. For strings, length can be set to zero. Then the length of
- * the string is calculated internally.
- * \param attention attention tur means assign ATN signal line during write.
- */
-static uchar _gpib_write(uchar *bytes, int length, uchar attention) {
-	uchar c;
-	int i;
-
-	gpib_write_prologue(attention);
-
-	if (length == 0) {
-		// length==0 means this is a common C string, null-terminated.
-		// then, length can be easily calculated
-		length = strlen((char*) bytes);
-	}
-
-//#define DEBUG_OUT
-#ifdef DEBUG_OUT
-	// debugging print out
-	uchar buf[128];
-	if (length > 1) {
-		for (i = 0; i < length; i++) {
-			buf[i] = bytes[i];
-		}
-		buf[i] = '\0';
-		uart_puts((char*) buf);
-	} else {
-		bytes[length] = 0x00;
-		sprintf(buf, "gpib_write: 0x%02x\n\r", bytes[0]);
-		uart_puts((char*) buf);
-	}
-#endif
-
-	for (i = 0; i < length; i++) {
-		// put data on bus
-		c = bytes[i];
-		//sprintf( buf, "char: %c\n\r", c );
-		//uart_puts(buf);		
-
-		uchar isLastByte = (i == length - 1) && !attention;
-		gpib_write_byte(c, isLastByte);
-	}
-
-	gpib_write_epilogue(attention);
-
-	return 0x00;
-}
 
 /**
  * print some useful info about bus state (for example value of handshake pins)
