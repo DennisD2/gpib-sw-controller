@@ -205,14 +205,37 @@ static void stringToTwoUchars(char *string, uchar *a, uchar *b) {
 /**
  * Checks for errors.
  *
- * Reads error queue first entry.
- * TODO: read complete queue in while loop.
+ * Reads error queue. output is one error per line.
  *
  */
 void check_errors() {
 	char *error_cmd = "SYST:ERR?";
-	//send_command(error_cmd, SEND_FULL_CMD);
-	receiveAnswer();
+	uchar msg[80];
+	uchar b, e;
+	uchar colptr = 0;
+	uchar allErrorsRead = 0;
+
+	while (!allErrorsRead) {
+		gpib_write_command(error_cmd);
+		gpib_prepare_read();
+		// read the answer until EOI is detected (then e becomes true)
+		uchar i = 0;
+		do {
+			// gpib bus receive
+			e = gpib_receive(&b);
+			msg[i++] = b;
+		} while (!e);
+		// terminate string
+		//msg[i++] = '\n';
+		msg[i++] = '\r';
+		msg[i] = 0x00;
+		// check if all errors have been read
+		if (strncmp(msg,"+0,",3)==0) {
+			allErrorsRead=1;
+		} else {
+			uart_puts((char*) msg);
+		}
+	}
 }
 
 /**
