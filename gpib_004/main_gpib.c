@@ -137,7 +137,7 @@
 uchar input_process(void);
 void printHelp();
 void handle_internal_commands(uchar *commandString);
-uchar send_command(uchar *commandString, uchar mode) ;
+uchar send_command(uchar *commandString, uchar mode);
 void receiveAnswer();
 
 #define COMMAND_INPUT_BUFFER_SIZE 80
@@ -153,7 +153,7 @@ uint8_t xonXoffMode = 1;
 /** srq enabled mode */
 uint8_t srq_enabled = 1;
 /** if !=0 break lines received from gpib at that line position */
-uint8_t linebreak=80;
+uint8_t linebreak = 80;
 
 #ifdef ARB_TEST
 void arb_ramp() {
@@ -341,7 +341,6 @@ uchar input_process(void) {
 	return ret;
 }
 
-
 /**
  * Handles builtin commands.
  */
@@ -405,7 +404,7 @@ void handle_internal_commands(uchar *commandString) {
 		check_errors();
 		break;
 #ifdef ARB_TEST
-	case 'z':
+		case 'z':
 		uart_puts("arb\n\r");
 		arb_ramp();
 		uart_puts("arb done\n\r");
@@ -419,22 +418,16 @@ void handle_internal_commands(uchar *commandString) {
 }
 
 /**
- * Sends a command.
- * Mode is SEND_FULL_CMD or SEND_PART
- *
- * Returns 1 if command is a query, 0 otherwise.
+ * Prepare listener for writing
  */
-uchar send_command(uchar *commandString, uchar mode) {
+void prepare_write() {
 	uchar controlString[8];
-	uchar is_query;
-
 	// send UNT and UNL commands (unlisten and untalk)
 	// effect: all talker stop talking and all listeners stop listening
 	controlString[0] = G_CMD_UNT;
 	gpib_cmd(controlString, 1);
 	controlString[0] = G_CMD_UNL;
 	gpib_cmd(controlString, 1);
-
 	// set device to listener mode
 	controlString[0] = address2ListenerAddress(gpib_get_partner_pad());
 	gpib_cmd(controlString, 1);
@@ -443,22 +436,31 @@ uchar send_command(uchar *commandString, uchar mode) {
 		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
 		gpib_cmd(controlString, 1);
 	}
-
 	// set myself (controller) to talker mode
 	controlString[0] = address2TalkerAddress(gpib_get_address());
 	gpib_cmd(controlString, 1);
+}
 
+/**
+ * Sends a command.
+ * Mode is SEND_FULL_CMD or SEND_PART
+ *
+ * Returns 1 if command is a query, 0 otherwise.
+ */
+uchar send_command(uchar *commandString, uchar mode) {
+	uchar is_query;
+	prepare_write();
 	//uart_puts("\n\rcommand: ");
 	//uart_puts((char*) commandString);
 	//uart_puts("\n\r");
 	// gpib bus write
 	// put out command to listeners
-	if (mode==SEND_FULL_CMD) {
+	if (mode == SEND_FULL_CMD) {
 		// full cmd , we have C string where length can be calculated by gpib_write()
 		gpib_write(commandString, 0);
 	} else {
 		// partial command, we must give length value; buffer is full.
-		gpib_write(commandString, COMMAND_INPUT_BUFFER_SIZE-1);
+		gpib_write(commandString, COMMAND_INPUT_BUFFER_SIZE - 1);
 	}
 
 	// check if query or command only
@@ -472,24 +474,16 @@ uchar send_command(uchar *commandString, uchar mode) {
 	return is_query;
 }
 
-/**
- * Receives answer after command was sent.
- */
-void receiveAnswer() {
+void prepare_read() {
 	uchar controlString[8];
-	uchar b, e;
-	uchar colptr=0;
-
 	// UNT and UNL
 	controlString[0] = G_CMD_UNT;
 	gpib_cmd(controlString, 1);
 	controlString[0] = G_CMD_UNL;
 	gpib_cmd(controlString, 1);
-
 	// set myself (controller) to listener mode
 	controlString[0] = address2ListenerAddress(gpib_get_address());
 	gpib_cmd(controlString, 1);
-
 	// set device to talker mode
 	controlString[0] = address2TalkerAddress(gpib_get_partner_pad());
 	gpib_cmd(controlString, 1);
@@ -498,16 +492,26 @@ void receiveAnswer() {
 		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
 		gpib_cmd(controlString, 1);
 	}
+}
 
+/**
+ * Receives answer after command was sent.
+ */
+void receiveAnswer() {
+	uchar controlString[8];
+	uchar b, e;
+	uchar colptr = 0;
+
+	prepare_read();
 	// read the answer until EOI is detected (then e becomes true)
 	do {
 		// gpib bus receive
 		e = gpib_receive(&b);
 		// write out character
 		uart_putc(b);
-		if (linebreak && (colptr++==linebreak)) {
+		if (linebreak && (colptr++ == linebreak)) {
 			uart_puts_P("\n\r");
-			colptr=0;
+			colptr = 0;
 		}
 		//sprintf((char*)buf,"%02x - %c\n\r", b, b);
 		//uart_puts((char*)buf);
@@ -574,9 +578,8 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 
 void printHelp() {
 #ifdef WRITE
-	sprintf(buf,
-			"\n\rGPIB Controller (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
-			REVISION);
+	sprintf(buf, "\n\rGPIB Controller (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
+	REVISION);
 	uart_puts(buf);
 #else
 	uart_puts("\n\rGPIB Listener Only (Rev.%s) (c) spurtikus.de 2008-2015\n\r", REVISION);
@@ -605,7 +608,7 @@ void printHelp() {
 int main(void) {
 	int old_time = 0;
 	uchar is_query = 0;
-	uchar command_ready = 0;
+//	uchar command_ready = 0;
 	uchar do_prompt = 1;
 
 	/*
@@ -619,11 +622,6 @@ int main(void) {
 
 	/** print some usage infos */
 	printHelp();
-
-#ifdef WRITE
-	/*
-	 * WRITE: Controller talks and listens
-	 */
 
 	// init timer for timeout detection
 	timer16_init();
@@ -642,91 +640,135 @@ int main(void) {
 	 * 3. if command was a query, read the answer from device (become listener and set device to talker)
 	 * 	4. check if SRQ occured and handle that
 	 */
+#define S_INITIAL 1
+#define S_FIRST_BYTE_INT 2
+#define S_FIRST_BYTE_GPIB 3
+#define S_SEND_BYTES 4
+#define S_GPIB_ANSWER 5
+#define S_GPIB_NO_ANSWER 6
+#define S_FINAL 7
+
+	uchar ch;
+	uint state = S_INITIAL;
 	for (;;) {
 
-		if (do_prompt) {
-			uart_puts("> ");
-			do_prompt = 0;
+		if (state == S_INITIAL) {
+			if (do_prompt) {
+				uart_puts("> ");
+				do_prompt = 0;
+				is_query = 0;
+			}
 		}
-		// input processing via rs232
-		// command_ready may already been set by SRQ that occurred before
-		if (!command_ready)
-			command_ready = input_process();
 
-		if (command_ready) {
+		if (!input_char(&ch))
+			continue;
+
+		// byte received. Decide with state what to do.
+
+		if (state == S_INITIAL) {
+			// internal or external command?
+			if (ch == '.') {
+				// internal command
+				state = S_FIRST_BYTE_INT;
+			} else {
+				// gpib command
+				state = S_FIRST_BYTE_GPIB;
+
+			}
+		}
+
+		if (state == S_FIRST_BYTE_INT) {
+			buf[0] = ch;
+			buf_ptr = 1;
+			// send received character back depending on global flag
+			if (rs232_remote_echo) {
+				uart_putc((unsigned char) ch);
+			}
+			// collect line until CR
+			while (!input_process())
+				;
 			uart_puts_P("\n\r");
-		}
-
-		// check for internal commands
-		if (command_ready && buf[0] == '.') {
-			// all internal cmds start with a '.'
-			//uart_puts("\n\rInternal command: ");
-			//uart_puts((char*) buf);
-			//uart_puts("\n\r");
+			// execute internal command
 			handle_internal_commands(buf);
-			// reset local vars for command string reading
-			buf_ptr = 0;
-			command_ready = 0;
-			do_prompt = 1;
-			is_query = 0;
-		}
-
-		// GPIB command. Check if a partner was defined.
-		if (command_ready && (gpib_get_partner_pad() == ADDRESS_NOT_SET)) {
-			uart_puts_P("Device address is not set. Can not send command.\n\r");
-			// reset local vars for command string reading
-			command_ready = 0;
+			// reset local vars
+			state = S_INITIAL;
 			buf_ptr = 0;
 			do_prompt = 1;
 		}
 
-		// GPIB command and valid partner. Send the command.
-		if (command_ready) {
-			//uart_puts("\n\rGPIB command: ");
-			//uart_puts((char*) buf);
-			//uart_puts("\n\r");
-			is_query = send_command(buf, SEND_FULL_CMD);
-			// reset local vars for command string reading
-			command_ready = 0;
+		if (state == S_FIRST_BYTE_GPIB) {
+			// GPIB command. Check if a partner was defined.
+			if (gpib_get_partner_pad() == ADDRESS_NOT_SET) {
+				uart_puts_P(
+						"Device address is not set. Can not send command.\n\r");
+				// reset local vars
+				state = S_INITIAL;
+				buf_ptr = 0;
+				do_prompt = 1;
+				is_query = 0;
+			} else {
+				// write prologue
+				state = S_SEND_BYTES;
+				prepare_write();
+				gpib_write_prologue(0);
+			}
+		}
+
+		if (state == S_SEND_BYTES) {
+			// send received character back depending on global flag
+			if (rs232_remote_echo) {
+				uart_putc((unsigned char) ch);
+			}
+			uchar isLastByte = (ch == ASCII_CODE_CR);
+			gpib_write_byte(ch, isLastByte);
+
+			if (ch == '?') {
+				is_query = 1;
+			}
+
+			if (isLastByte) {
+				uart_puts_P("\n\r");
+				if (is_query) {
+					//uart_puts("Query. Will check for answer.\n\r");
+					state = S_GPIB_ANSWER;
+				} else {
+					//uart_puts("Command only.\n\r");
+					state = S_GPIB_NO_ANSWER;
+				}
+			}
+		}
+
+		// write epilogue
+		if (state == S_GPIB_ANSWER || state == S_GPIB_NO_ANSWER) {
+			gpib_write_epilogue(0);
 			buf_ptr = 0;
-			do_prompt = 1;
 		}
 
 		// if we sent a query, read the answer
-		if (is_query) {
+		if (state == S_GPIB_ANSWER) {
 			receiveAnswer();
-			// reset for next command
-			is_query = 0;
+			state = S_FINAL;
+		}
+
+		// finalize state machine
+		if (state == S_GPIB_NO_ANSWER || state == S_FINAL) {
 			// some devices do not send cr,lf at command end, so create it always itself
 			uart_puts_P("\n\r");
 			do_prompt = 1;
+			state = S_INITIAL;
 		}
 
 		// SRQ detection - do this every time when time value s has changed
 		// s is incremented every second. So we check once a second.
 		if (srq_enabled && srq_occured(&old_time)) {
-			command_ready = handle_srq(buf, &buf_ptr);
+			// TODO: make handle srq work again
+			// the returned command_ready was interpreted to read in an answer
+			// but this was turned of for new input loop
+			// next two lines replace that but must be tested.
+			if (handle_srq(buf, &buf_ptr)) {
+				state = S_GPIB_ANSWER;
+			}
 		}
 	}
-#else
-	/*
-	 * READ: Controller=me is LISTENER ONLY
-	 */
 
-	// init gpib lines
-	gpib_init();
-
-	for(;;) {
-
-		// 
-		e = gpib_receive(&b);
-		uart_putc(b);
-		if (e)
-		uart_puts_P("\n\rEOI\n\r");
-
-		// input processing via rs232
-		input_process();
-
-	}
-#endif
 }
