@@ -134,6 +134,15 @@
 #define SEND_PART 1
 #define SEND_FULL_CMD 2
 
+/** state machine states, see main() */
+#define S_INITIAL 1
+#define S_FIRST_BYTE_INT 2
+#define S_FIRST_BYTE_GPIB 3
+#define S_SEND_BYTES 4
+#define S_GPIB_ANSWER 5
+#define S_GPIB_NO_ANSWER 6
+#define S_FINAL 7
+
 uchar input_process(void);
 void printHelp();
 void handle_internal_commands(uchar *commandString);
@@ -518,8 +527,8 @@ void printHelp() {
 int main(void) {
 	int old_time = 0;
 	uchar is_query = 0;
-//	uchar command_ready = 0;
 	uchar do_prompt = 1;
+	uchar ch;
 
 	/*
 	 *  Initialize UART library, pass baudrate and avr cpu clock 
@@ -550,15 +559,7 @@ int main(void) {
 	 * 3. if command was a query, read the answer from device (become listener and set device to talker)
 	 * 	4. check if SRQ occured and handle that
 	 */
-#define S_INITIAL 1
-#define S_FIRST_BYTE_INT 2
-#define S_FIRST_BYTE_GPIB 3
-#define S_SEND_BYTES 4
-#define S_GPIB_ANSWER 5
-#define S_GPIB_NO_ANSWER 6
-#define S_FINAL 7
 
-	uchar ch;
 	uint state = S_INITIAL;
 	for (;;) {
 
