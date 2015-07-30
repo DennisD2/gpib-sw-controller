@@ -170,8 +170,8 @@ void arb_ramp() {
 	uchar b[10];
 	double f;
 	//send_command("SOUR:LIST:SEGM:VOLT ");
-	for (int i=0; i<4096; i++) {
-		f=0.00122*(double)i;
+	for (int i = 0; i < 4096; i++) {
+		f = 0.00122 * (double) i;
 		sprintf(b, "%1.4f,", f);
 		uart_puts(b);
 		//gpib_write(b, 0);
@@ -407,7 +407,7 @@ void handle_internal_commands(uchar *commandString) {
 		check_errors();
 		break;
 #ifdef ARB_TEST
-		case 'z':
+	case 'z':
 		uart_puts("arb\n\r");
 		arb_ramp();
 		uart_puts("arb done\n\r");
@@ -419,7 +419,6 @@ void handle_internal_commands(uchar *commandString) {
 		break;
 	}
 }
-
 
 /**
  * Receives answer after command was sent.
@@ -518,51 +517,22 @@ void printHelp() {
 }
 
 /**
- * GPIB controller main function
- * \brief Implementation of GPIB controller. Reads a command from RS232, sends it via bus.
- * If The command contains a '?', an answer from the device is expected and read in. The
- * answer then is printed out. If an SRQ occured, a serial poll is initiated.
- * 
+ * State machine.
+ *
+ * 1. try to read command from user
+ * 2. send user entered command, if available, to listeners (act as talker, set devices to listeners)
+ * 3. if command was a query, read the answer from device (become listener and set device to talker)
+ * 4. check if SRQ occured and handle that
+ *
  */
-int main(void) {
+void state_machine() {
 	int old_time = 0;
 	uchar is_query = 0;
 	uchar do_prompt = 1;
 	uchar ch;
 
-	/*
-	 *  Initialize UART library, pass baudrate and avr cpu clock 
-	 *  with the macro UART_BAUD_SELECT()
-	 */DI();
-
-	/*
-	 * now enable interrupt, since UART and TIMER library is interrupt controlled
-	 */sei();
-
-	/** print some usage infos */
-	printHelp();
-
-	// init timer for timeout detection
-	timer16_init();
-
-	// init gpib lines
-	gpib_init();
-	// init controller part - assign bus 
-	gpib_controller_assign(0x00);
-
-	if (xonXoffMode) {
-		uart_set_flow_control(FLOWCONTROL_XONXOFF);
-	}
-	/* controller loops forever:
-	 * 1. try to read command from user
-	 * 2. send user entered command, if available, to listeners (act as talker, set devices to listeners)
-	 * 3. if command was a query, read the answer from device (become listener and set device to talker)
-	 * 	4. check if SRQ occured and handle that
-	 */
-
-	uint state = S_INITIAL;
+	uchar state = S_INITIAL;
 	for (;;) {
-
 		if (state == S_INITIAL) {
 			if (do_prompt) {
 				uart_puts("> ");
@@ -683,5 +653,40 @@ int main(void) {
 			}
 		}
 	}
+}
 
+/**
+ * GPIB controller main function
+ * \brief Implementation of GPIB controller. Reads a command from RS232, sends it via bus.
+ * If The command contains a '?', an answer from the device is expected and read in. The
+ * answer then is printed out. If an SRQ occured, a serial poll is initiated.
+ * 
+ */
+int main(void) {
+	/*
+	 *  Initialize UART library, pass baudrate and avr cpu clock 
+	 *  with the macro UART_BAUD_SELECT()
+	 */DI();
+
+	/*
+	 * now enable interrupt, since UART and TIMER library is interrupt controlled
+	 */sei();
+
+	/** print some usage infos */
+	printHelp();
+
+	// init timer for timeout detection
+	timer16_init();
+
+	// init gpib lines
+	gpib_init();
+	// init controller part - assign bus 
+	gpib_controller_assign(0x00);
+
+	if (xonXoffMode) {
+		uart_set_flow_control(FLOWCONTROL_XONXOFF);
+	}
+	/* state machine loops forever:
+	 */
+	state_machine();
 }
