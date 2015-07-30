@@ -119,6 +119,61 @@ void gpib_init(void) {
 }
 
 /**
+ * Prepare partner for writing
+ */
+void gpib_prepare_write() {
+	uchar controlString[8];
+	// send UNT and UNL commands (unlisten and untalk)
+	// effect: all talker stop talking and all listeners stop listening
+	// untalk/unlisten all partbners
+	gpib_untalkUnlisten();
+	// set device to listener mode
+	controlString[0] = address2ListenerAddress(gpib_get_partner_pad());
+	gpib_cmd(controlString, 1);
+	// send secondary address if required
+	if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
+		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
+		gpib_cmd(controlString, 1);
+	}
+	// set myself (controller) to talker mode
+	controlString[0] = address2TalkerAddress(gpib_get_address());
+	gpib_cmd(controlString, 1);
+}
+
+/**
+ * Prepare partner for writing
+ */
+void gpib_prepare_read() {
+	uchar controlString[8];
+	// untalk/unlisten all partbners
+	gpib_untalkUnlisten();
+	// set myself (controller) to listener mode
+	controlString[0] = address2ListenerAddress(gpib_get_address());
+	gpib_cmd(controlString, 1);
+	// set device to talker mode
+	controlString[0] = address2TalkerAddress(gpib_get_partner_pad());
+	gpib_cmd(controlString, 1);
+	// secondary address if required
+	if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
+		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
+		gpib_cmd(controlString, 1);
+	}
+}
+
+/**
+ * Untalk / unlisten all partners on bus.
+ */
+void gpib_untalkUnlisten() {
+	uchar controlString[8];
+	// send UNT and UNL commands (unlisten and untalk)
+	// effect: all talker stop talking and all listeners stop listening
+	controlString[0] = G_CMD_UNT;
+	gpib_cmd(controlString, 1);
+	controlString[0] = G_CMD_UNL;
+	gpib_cmd(controlString, 1);
+}
+
+/**
  * Receive a character from GPIB Bus.
  * \brief Does busy waiting until timeout value is reached.
  *  \param _byte 	Pointer to single character; the function stores herein the character read.

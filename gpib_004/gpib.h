@@ -74,6 +74,10 @@
 // management functions for controller
 extern void gpib_init(void);
 
+extern void gpib_prepare_write() ;
+extern void gpib_prepare_read() ;
+extern void gpib_untalkUnlisten();
+
 extern void gpib_set_flavour(uchar flavour);
 extern uchar gpib_get_flavour(void);
 

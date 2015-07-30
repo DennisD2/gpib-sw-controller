@@ -137,7 +137,7 @@
 uchar input_process(void);
 void printHelp();
 void handle_internal_commands(uchar *commandString);
-uchar send_command(uchar *commandString, uchar mode);
+//uchar send_command(uchar *commandString, uchar mode);
 void receiveAnswer();
 
 #define COMMAND_INPUT_BUFFER_SIZE 80
@@ -155,6 +155,7 @@ uint8_t srq_enabled = 1;
 /** if !=0 break lines received from gpib at that line position */
 uint8_t linebreak = 80;
 
+//#define ARB_TEST
 #ifdef ARB_TEST
 void arb_ramp() {
 	uchar b[10];
@@ -171,9 +172,9 @@ void arb_ramp() {
 void arb() {
 	send_command("*RST");
 	send_command("SOUR:ROSC:SOUR INT;");
-	send_command("SOUR:FREQ:FIX 1E3;");
-	send_command("SOUR:FUNC:SHAP USER;");
-	send_command("SOUR:VOLT:LEV:IMM:AMPL 5V");
+	send_command(":SOUR:FREQ:FIX 1E3;");
+	send_command(":SOUR:FUNC:SHAP USER;");
+	send_command(":SOUR:VOLT:LEV:IMM:AMPL 5V");
 	send_command("SOUR:LIST:SEGM:SEL A"); // no ';' at end!
 	arb_ramp();
 	send_command("SOUR:FUNC:USER A");
@@ -207,7 +208,7 @@ static void stringToTwoUchars(char *string, uchar *a, uchar *b) {
  */
 void check_errors() {
 	char *error_cmd = "SYST:ERR?";
-	send_command(error_cmd, SEND_FULL_CMD);
+	//send_command(error_cmd, SEND_FULL_CMD);
 	receiveAnswer();
 }
 
@@ -285,22 +286,15 @@ uchar process_char(uchar ch) {
 
 	// if command ends or buffer is full ...
 	if (ch == ASCII_CODE_CR || buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
-
 		if (ch == ASCII_CODE_CR) {
 			// adjust string terminator
 			buf[--buf_ptr] = '\0';
 			// let calling function send last command part (or command itself)
 			ret = 1;
 		} else {
-			if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
-				// send intermediate part of command.
-				send_command(buf, SEND_PART);
-				buf_ptr = 0;
-			} else {
-				// send intermediate part of command.
-				uart_puts_P("Command overflow.");
-				buf_ptr = 0;
-			}
+			// send intermediate part of command.
+			uart_puts_P("Command overflow.");
+			buf_ptr = 0;
 		}
 	}
 	return ret;
@@ -417,92 +411,15 @@ void handle_internal_commands(uchar *commandString) {
 	}
 }
 
-/**
- * Prepare listener for writing
- */
-void prepare_write() {
-	uchar controlString[8];
-	// send UNT and UNL commands (unlisten and untalk)
-	// effect: all talker stop talking and all listeners stop listening
-	controlString[0] = G_CMD_UNT;
-	gpib_cmd(controlString, 1);
-	controlString[0] = G_CMD_UNL;
-	gpib_cmd(controlString, 1);
-	// set device to listener mode
-	controlString[0] = address2ListenerAddress(gpib_get_partner_pad());
-	gpib_cmd(controlString, 1);
-	// send secondary address if required
-	if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
-		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
-		gpib_cmd(controlString, 1);
-	}
-	// set myself (controller) to talker mode
-	controlString[0] = address2TalkerAddress(gpib_get_address());
-	gpib_cmd(controlString, 1);
-}
-
-/**
- * Sends a command.
- * Mode is SEND_FULL_CMD or SEND_PART
- *
- * Returns 1 if command is a query, 0 otherwise.
- */
-uchar send_command(uchar *commandString, uchar mode) {
-	uchar is_query;
-	prepare_write();
-	//uart_puts("\n\rcommand: ");
-	//uart_puts((char*) commandString);
-	//uart_puts("\n\r");
-	// gpib bus write
-	// put out command to listeners
-	if (mode == SEND_FULL_CMD) {
-		// full cmd , we have C string where length can be calculated by gpib_write()
-		gpib_write(commandString, 0);
-	} else {
-		// partial command, we must give length value; buffer is full.
-		gpib_write(commandString, COMMAND_INPUT_BUFFER_SIZE - 1);
-	}
-
-	// check if query or command only
-	if (strchr((char*) commandString, '?') != NULL) {
-		//uart_puts("Query. Will check for answer.\n\r");
-		is_query = 1;
-	} else {
-		//uart_puts("Command only.\n\r");
-		is_query = 0;
-	}
-	return is_query;
-}
-
-void prepare_read() {
-	uchar controlString[8];
-	// UNT and UNL
-	controlString[0] = G_CMD_UNT;
-	gpib_cmd(controlString, 1);
-	controlString[0] = G_CMD_UNL;
-	gpib_cmd(controlString, 1);
-	// set myself (controller) to listener mode
-	controlString[0] = address2ListenerAddress(gpib_get_address());
-	gpib_cmd(controlString, 1);
-	// set device to talker mode
-	controlString[0] = address2TalkerAddress(gpib_get_partner_pad());
-	gpib_cmd(controlString, 1);
-	// secondary address if required
-	if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
-		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
-		gpib_cmd(controlString, 1);
-	}
-}
 
 /**
  * Receives answer after command was sent.
  */
 void receiveAnswer() {
-	uchar controlString[8];
 	uchar b, e;
 	uchar colptr = 0;
 
-	prepare_read();
+	gpib_prepare_read();
 	// read the answer until EOI is detected (then e becomes true)
 	do {
 		// gpib bus receive
@@ -516,13 +433,6 @@ void receiveAnswer() {
 		//sprintf((char*)buf,"%02x - %c\n\r", b, b);
 		//uart_puts((char*)buf);
 	} while (!e);
-
-	// send UNT and UNL commands (unlisten and untalk)
-	// effect: all talker stop talking and all listeners stop listening
-	controlString[0] = G_CMD_UNT;
-	gpib_cmd(controlString, 1);
-	controlString[0] = G_CMD_UNL;
-	gpib_cmd(controlString, 1);
 }
 
 /**
@@ -709,7 +619,7 @@ int main(void) {
 			} else {
 				// write prologue
 				state = S_SEND_BYTES;
-				prepare_write();
+				gpib_prepare_write();
 				gpib_write_prologue(0);
 			}
 		}
@@ -752,6 +662,8 @@ int main(void) {
 
 		// finalize state machine
 		if (state == S_GPIB_NO_ANSWER || state == S_FINAL) {
+			// untalk/unlisten all partners
+			gpib_untalkUnlisten();
 			// some devices do not send cr,lf at command end, so create it always itself
 			uart_puts_P("\n\r");
 			do_prompt = 1;
