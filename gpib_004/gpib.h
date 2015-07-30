@@ -50,9 +50,9 @@
 #define G_CMD_SPD 0x19
 #define G_CMD_DCL 0x14
 
+/** important ASCII codes */
 #define ASCII_CODE_CR 0x0d
 #define ASCII_CODE_LF 0x0a
-
 
 /**
  * GPIB Address scheme: physical addresses are 0,1,2,3,...

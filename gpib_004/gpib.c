@@ -72,6 +72,8 @@ static gpib_controller_t controller;
 
 /** buffer used for sending commands and print out strings */
 uchar cmd_buf[100];
+/** multi purpose buffer */
+uchar buf[80];
 
 /**
  * Some basic delay function
