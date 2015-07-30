@@ -686,7 +686,7 @@ int main(void) {
 	if (xonXoffMode) {
 		uart_set_flow_control(FLOWCONTROL_XONXOFF);
 	}
-	/* state machine loops forever:
-	 */
+
+	// state machine loops forever
 	state_machine();
 }
