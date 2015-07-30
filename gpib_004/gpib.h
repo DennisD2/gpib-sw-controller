@@ -50,6 +50,10 @@
 #define G_CMD_SPD 0x19
 #define G_CMD_DCL 0x14
 
+#define ASCII_CODE_CR 0x0d
+#define ASCII_CODE_LF 0x0a
+
+
 /**
  * GPIB Address scheme: physical addresses are 0,1,2,3,...
  * Listener addresses are physical address + 0x20
@@ -78,6 +82,7 @@ extern void gpib_prepare_write() ;
 extern void gpib_prepare_read() ;
 extern void gpib_untalkUnlisten();
 
+
 extern void gpib_set_flavour(uchar flavour);
 extern uchar gpib_get_flavour(void);
 
@@ -105,6 +110,9 @@ extern uchar gpib_write(uchar *bytes, int length);
 extern void gpib_write_epilogue(uchar attention);
 extern uchar gpib_write_byte(uchar c, uchar isLastByte);
 extern void gpib_write_prologue(uchar attention) ;
+extern void gpib_write_string(uchar *s);
+extern void gpib_write_command(uchar *s);
+
 
 // just for code testing
 extern void gpib_info(void);

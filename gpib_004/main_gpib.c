@@ -123,13 +123,6 @@
 #include "gpib.h"
 #include "timer16.h"
 
-/** if WRITE is defined, the "real" controller code is used, if not defined, simple
- * listener code is executed. */
-#define WRITE
-
-#define ASCII_CODE_CR 0x0d
-#define ASCII_CODE_LF 0x0a
-
 /** values for send_command */
 #define SEND_PART 1
 #define SEND_FULL_CMD 2
@@ -164,32 +157,42 @@ uint8_t srq_enabled = 1;
 /** if !=0 break lines received from gpib at that line position */
 uint8_t linebreak = 80;
 
-//#define ARB_TEST
+#define ARB_TEST
 #ifdef ARB_TEST
+
 void arb_ramp() {
 	uchar b[10];
-	double f;
-	//send_command("SOUR:LIST:SEGM:VOLT ");
+
+	gpib_prepare_write();
+	gpib_write_prologue(0);
+
+	gpib_write_string("SOUR:LIST:SEGM:VOLT ");
+
 	for (int i = 0; i < 4096; i++) {
-		f = 0.00122 * (double) i;
-		sprintf(b, "%1.4f,", f);
-		uart_puts(b);
-		//gpib_write(b, 0);
+		int f = i / 1000;
+		sprintf(b, "%d", f);
+		gpib_write_byte(b[0], 0);
+		if (i < 4096 - 1) {
+			gpib_write_byte(',', 0);
+		}
 	}
 
+	gpib_write_byte(ASCII_CODE_CR, 1);
+	gpib_write_epilogue(0);
+	gpib_untalkUnlisten();
 }
-void arb() {
-	send_command("*RST");
-	send_command("SOUR:ROSC:SOUR INT;");
-	send_command(":SOUR:FREQ:FIX 1E3;");
-	send_command(":SOUR:FUNC:SHAP USER;");
-	send_command(":SOUR:VOLT:LEV:IMM:AMPL 5V");
-	send_command("SOUR:LIST:SEGM:SEL A"); // no ';' at end!
-	arb_ramp();
-	send_command("SOUR:FUNC:USER A");
-	send_command("INIT:IMM");
-	//send_command("SOUR:LIST:SEGM:SEL?");
 
+void arb() {
+	gpib_write_command("*RST");
+	gpib_write_command("SOUR:ROSC:SOUR INT;");
+	gpib_write_command(":SOUR:FREQ:FIX 1E3;");
+	gpib_write_command(":SOUR:FUNC:SHAP USER;");
+	gpib_write_command(":SOUR:VOLT:LEV:IMM:AMPL 5V");
+	gpib_write_command("SOUR:LIST:SEGM:SEL A"); // no ';' at end!
+	arb_ramp();
+	gpib_write_command("SOUR:FUNC:USER A");
+	gpib_write_command("INIT:IMM");
+	//send_command("SOUR:LIST:SEGM:SEL?");
 }
 #endif
 
@@ -409,7 +412,7 @@ void handle_internal_commands(uchar *commandString) {
 #ifdef ARB_TEST
 	case 'z':
 		uart_puts("arb\n\r");
-		arb_ramp();
+		arb();
 		uart_puts("arb done\n\r");
 		break;
 #endif
@@ -495,14 +498,9 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 }
 
 void printHelp() {
-#ifdef WRITE
 	sprintf(buf, "\n\rGPIB Controller (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
 	REVISION);
 	uart_puts(buf);
-#else
-	uart_puts("\n\rGPIB Listener Only (Rev.%s) (c) spurtikus.de 2008-2015\n\r", REVISION);
-	uart_puts(buf);
-#endif
 	uart_puts_P("Internal commands:\n\r");
 	uart_puts(
 			".a <primary> [<secondary>] - set prim./second. address of remote device\n\r");

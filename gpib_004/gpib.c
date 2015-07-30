@@ -340,6 +340,33 @@ void gpib_write_epilogue(uchar attention) {
 }
 
 /**
+ * Write command. A command is a sequence with the following parts
+ * - prefix that defines address settings for talker and listener
+ * - prefix with GPIB write prologue
+ * - the string
+ * - postfix with GPIB epilogue
+ * - postfix that untalks/unlistens all partners
+ */
+void gpib_write_command(uchar *s) {
+	gpib_prepare_write();
+	gpib_write_prologue(0);
+	gpib_write_string(s);
+	gpib_write_byte(ASCII_CODE_CR, 1);
+	gpib_write_epilogue(0);
+	gpib_untalkUnlisten();
+}
+
+/**
+ * Write string. Only the raw string is written, no prefix and no postfix.
+ */
+void gpib_write_string(uchar *s) {
+	for (int i = 0; i < strlen(s); i++) {
+		gpib_write_byte(s[i], 0);
+	}
+}
+
+
+/**
  * Emits single byte to GPIB port pins.
  */
 uchar gpib_write_byte(uchar c, uchar isLastByte) {
