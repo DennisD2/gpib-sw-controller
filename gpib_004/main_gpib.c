@@ -123,10 +123,6 @@
 #include "gpib.h"
 #include "timer16.h"
 
-/** values for send_command */
-#define SEND_PART 1
-#define SEND_FULL_CMD 2
-
 /** state machine states, see main() */
 #define S_INITIAL 1
 #define S_FIRST_BYTE_INT 2
@@ -136,18 +132,6 @@
 #define S_GPIB_NO_ANSWER 6
 #define S_FINAL 7
 
-uchar input_process(void);
-void printHelp();
-void handle_internal_commands(uchar *commandString);
-//uchar send_command(uchar *commandString, uchar mode);
-void receiveAnswer();
-
-#define COMMAND_INPUT_BUFFER_SIZE 80
-/** buffers used for commands and output strings */
-uchar buf[COMMAND_INPUT_BUFFER_SIZE];
-/** pointer in buffer */
-int buf_ptr = 0;
-
 /** set to 1 to do line echo of all chars received by controller */
 uint8_t rs232_remote_echo = 1;
 /** Xon/Xoff flow control flag */
@@ -156,6 +140,13 @@ uint8_t xonXoffMode = 1;
 uint8_t srq_enabled = 1;
 /** if !=0 break lines received from gpib at that line position */
 uint8_t linebreak = 80;
+
+#define COMMAND_INPUT_BUFFER_SIZE 80
+
+uchar input_process(uchar *buf, int *ptr);
+void printHelp();
+void handle_internal_commands(uchar *cmd);
+void receiveAnswer();
 
 #define ARB_TEST
 #ifdef ARB_TEST
@@ -281,7 +272,7 @@ uchar input_char(uchar *ch) {
  *
  * Returns 1 if command end is detected, 0 otherwise.
  */
-uchar process_char(uchar ch) {
+uchar process_char(uchar *buf, uchar ch, int *ptr) {
 	uchar ret = 0;
 	/*
 	 * send received character back depending on global flag
@@ -291,22 +282,22 @@ uchar process_char(uchar ch) {
 	}
 
 	// if input buffer is not full, add char
-	if (buf_ptr < COMMAND_INPUT_BUFFER_SIZE - 1) {
-		buf[buf_ptr++] = ch;
-		buf[buf_ptr] = '\0';
+	if (*ptr < COMMAND_INPUT_BUFFER_SIZE - 1) {
+		buf[(*ptr)++] = ch;
+		buf[*ptr] = '\0';
 	}
 
 	// if command ends or buffer is full ...
-	if (ch == ASCII_CODE_CR || buf_ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
+	if (ch == ASCII_CODE_CR || *ptr >= COMMAND_INPUT_BUFFER_SIZE - 1) {
 		if (ch == ASCII_CODE_CR) {
 			// adjust string terminator
-			buf[--buf_ptr] = '\0';
+			buf[--(*ptr)] = '\0';
 			// let calling function send last command part (or command itself)
 			ret = 1;
 		} else {
 			// send intermediate part of command.
 			uart_puts_P("Command overflow.");
-			buf_ptr = 0;
+			*ptr = 0;
 		}
 	}
 	return ret;
@@ -326,7 +317,7 @@ uchar process_char(uchar ch) {
  *
  * \returns The character read in
  */
-uchar input_process(void) {
+uchar input_process(uchar *buf, int *ptr) {
 	uchar ch, ret = 0;
 
 	if (uart_get_flow_control() == FLOWCONTROL_XONXOFF) {
@@ -335,14 +326,14 @@ uchar input_process(void) {
 			if (!input_char(&ch)) {
 				return 0;
 			}
-			ret = process_char(ch);
+			ret = process_char(buf, ch, ptr);
 		}
 	} else {
 		// if nothing can be read in, return
 		if (!input_char(&ch)) {
 			return 0;
 		}
-		ret = process_char(ch);
+		ret = process_char(buf, ch, ptr);
 	}
 	return ret;
 }
@@ -350,38 +341,38 @@ uchar input_process(void) {
 /**
  * Handles builtin commands.
  */
-void handle_internal_commands(uchar *commandString) {
+void handle_internal_commands(uchar *cmd) {
 	uchar val, val1;
 
-	switch (buf[1]) {
+	switch (cmd[1]) {
 	case 'a':
 		/* set partner primary+secondary address */
-		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
-		sprintf(buf, "Set partner address, primary: %u , secondary: %u\n\r",
+		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
+		sprintf(cmd, "Set partner address, primary: %u , secondary: %u\n\r",
 				val, val1);
-		uart_puts(buf);
+		uart_puts(cmd);
 		gpib_set_partner_address(val, val1);
 		break;
 	case 's':
 		/* set partner secondary address */
-		val = atoi((char*) (&(buf[2])));
-		sprintf(buf, "Set partner secondary address to %u\n\r", val);
-		uart_puts(buf);
+		val = atoi((char*) (&(cmd[2])));
+		sprintf(cmd, "Set partner secondary address to %u\n\r", val);
+		uart_puts(cmd);
 		gpib_set_partner_secondary(val);
 		break;
 	case '+':
 		/* add device */
-		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
-		sprintf(buf, "Add device, primary: %u , secondary: %u\n\r", val, val1);
-		uart_puts(buf);
+		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
+		sprintf(cmd, "Add device, primary: %u , secondary: %u\n\r", val, val1);
+		uart_puts(cmd);
 		gpib_add_partner_address(val, val1);
 		break;
 	case '-':
 		/* add device */
-		stringToTwoUchars((char*) (&(buf[2])), &val, &val1);
-		sprintf(buf, "Remove device, primary: %u , secondary: %u\n\r", val,
+		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
+		sprintf(cmd, "Remove device, primary: %u , secondary: %u\n\r", val,
 				val1);
-		uart_puts(buf);
+		uart_puts(cmd);
 		gpib_remove_partner_address(val, val1);
 		break;
 	case 'x':
@@ -402,8 +393,8 @@ void handle_internal_commands(uchar *commandString) {
 		break;
 	case 'i':
 		gpib_info();
-		sprintf(buf, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
-		uart_puts(buf);
+		sprintf(cmd, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
+		uart_puts(cmd);
 		break;
 	case 'e':
 		uart_puts_P("Check errors\n\r");
@@ -498,6 +489,7 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 }
 
 void printHelp() {
+	char buf[COMMAND_INPUT_BUFFER_SIZE];
 	sprintf(buf, "\n\rGPIB Controller (Rev.%s) (c) spurtikus.de 2008-2015\n\r",
 	REVISION);
 	uart_puts(buf);
@@ -528,6 +520,11 @@ void state_machine() {
 	uchar is_query = 0;
 	uchar do_prompt = 1;
 	uchar ch;
+
+	/** buffers used for commands and output strings */
+	uchar buf[COMMAND_INPUT_BUFFER_SIZE];
+	/** pointer in buffer */
+	int buf_ptr = 0;
 
 	uchar state = S_INITIAL;
 	for (;;) {
@@ -564,7 +561,7 @@ void state_machine() {
 				uart_putc((unsigned char) ch);
 			}
 			// collect line until CR
-			while (!input_process())
+			while (!input_process(buf, &buf_ptr))
 				;
 			uart_puts_P("\n\r");
 			// execute internal command
