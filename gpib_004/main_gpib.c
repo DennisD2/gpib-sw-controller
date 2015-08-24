@@ -418,6 +418,12 @@ void handle_internal_commands(uchar *cmd) {
 		gpib_info();
 		sprintf(cmd, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
 		uart_puts(cmd);
+		sprintf(cmd, "RS232 echo: %u\n\r", rs232_remote_echo);
+		uart_puts(cmd);
+		sprintf(cmd, "SRQs enabled: %u\n\r", srq_enabled);
+		uart_puts(cmd);
+		sprintf(cmd, "Linebreak value: %u\n\r", linebreak);
+		uart_puts(cmd);
 		break;
 	case 'e':
 		uart_puts_P("Check errors\n\r");
@@ -526,7 +532,8 @@ void printHelp() {
 			".- <n> - remove partner device address from list of known devices.\n\r");
 	uart_puts_P(".x - toggle Xon/Xoff flow control.\n\r");
 	uart_puts_P(".h - print help.\n\r");
-	uart_puts_P(".i - dump info about GPIB lines.\n\r");
+	uart_puts_P(".e - dump error queue.\n\r");
+	uart_puts_P(".i - dump info about controller state.\n\r");
 }
 
 /**
