@@ -119,22 +119,38 @@ void gpib_init(void) {
 }
 
 /**
+ * Sends address bytes to address a partner. Caller of this function must decide
+ * if talker or listener address is used.
+ * \param primary primary address of device
+ * \param secondary secondary address of device
+ */
+void gpib_send_address( uchar primary, uchar secondary) {
+	uchar controlString[10];
+	controlString[0] = primary;
+	//uart_puts("before talker address p write\r\n");
+	gpib_cmd(controlString, 1);
+	// handle secondary address if required
+	if (secondary != ADDRESS_NOT_SET) {
+		controlString[0] = secondary;
+		//uart_puts("before talker address s write\r\n");
+		gpib_cmd(controlString, 1);
+	}
+	//uart_puts("after talker address write\r\n");
+}
+
+/**
  * Prepare partner for writing
  */
 void gpib_prepare_write() {
 	uchar controlString[8];
 	// send UNT and UNL commands (unlisten and untalk)
-	// effect: all talker stop talking and all listeners stop listening
-	// untalk/unlisten all partbners
 	gpib_untalkUnlisten();
+
 	// set device to listener mode
-	controlString[0] = address2ListenerAddress(gpib_get_partner_pad());
-	gpib_cmd(controlString, 1);
-	// send secondary address if required
-	if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
-		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
-		gpib_cmd(controlString, 1);
-	}
+	uchar primary = address2ListenerAddress(gpib_get_partner_pad());
+	uchar secondary = (gpib_get_partner_sad()==ADDRESS_NOT_SET)? ADDRESS_NOT_SET: secondaryAdressToAdressByte(gpib_get_partner_sad());
+	gpib_send_address(primary, secondary);
+
 	// set myself (controller) to talker mode
 	controlString[0] = address2TalkerAddress(gpib_get_address());
 	gpib_cmd(controlString, 1);
@@ -145,19 +161,17 @@ void gpib_prepare_write() {
  */
 void gpib_prepare_read() {
 	uchar controlString[8];
-	// untalk/unlisten all partbners
+	// untalk/unlisten all partners
 	gpib_untalkUnlisten();
+
 	// set myself (controller) to listener mode
 	controlString[0] = address2ListenerAddress(gpib_get_address());
 	gpib_cmd(controlString, 1);
+
 	// set device to talker mode
-	controlString[0] = address2TalkerAddress(gpib_get_partner_pad());
-	gpib_cmd(controlString, 1);
-	// secondary address if required
-	if (gpib_get_partner_sad() != ADDRESS_NOT_SET) {
-		controlString[0] = secondaryAdressToAdressByte(gpib_get_partner_sad());
-		gpib_cmd(controlString, 1);
-	}
+	uchar primary = address2TalkerAddress(gpib_get_partner_pad());
+	uchar secondary = (gpib_get_partner_sad()==ADDRESS_NOT_SET)? ADDRESS_NOT_SET: secondaryAdressToAdressByte(gpib_get_partner_sad());
+	gpib_send_address(primary, secondary);
 }
 
 /**
@@ -599,6 +613,7 @@ void gpib_spoll_end() {
 	gpib_cmd(controlString, 1);
 }
 
+
 /**
  * Serial poll a single device.
  *
@@ -611,16 +626,8 @@ uchar gpib_spoll_single(uchar primary, uchar secondary) {
 	uchar controlString[10];
 	uchar b, e;
 
-	controlString[0] = primary;
-	//uart_puts("before talker address p write\r\n");
-	gpib_cmd(controlString, 1);
-	// handle secondary address if required
-	if (secondary != ADDRESS_NOT_SET) {
-		controlString[0] = secondary;
-		//uart_puts("before talker address s write\r\n");
-		gpib_cmd(controlString, 1);
-	}
-	//uart_puts("after talker address write\r\n");
+	// address device
+	gpib_send_address(primary, secondary);
 
 	// now receive data
 	//uart_puts("before status byte receive\r\n");
