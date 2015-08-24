@@ -296,7 +296,7 @@ void gpib_controller_release(void) {
  * \param length length of valid bytes in byte array or zero.
  * for binary data, lenght must be defined. For strings, length can be set to zero. Then the length of
  * the string is calculated internally.
-  */
+ */
 uchar gpib_cmd(uchar *bytes, int length) {
 	uchar c;
 	int i;
@@ -403,7 +403,6 @@ void gpib_write_string(uchar *s) {
 	}
 }
 
-
 /**
  * Emits single byte to GPIB port pins.
  */
@@ -508,7 +507,6 @@ uchar gpib_write_byte(uchar c, uchar isLastByte) {
 	return 0;
 }
 
-
 /**
  * print some useful info about bus state (for example value of handshake pins)
  */
@@ -580,6 +578,73 @@ void gpib_info(void) {
 }
 
 /**
+ * Enable serial poll.
+ * Effect: all devices will send status byte instead of normal data when addressed as talker
+ */
+void gpib_spoll_start() {
+	uchar controlString[4];
+	//uart_puts("before SPE\r\n");
+	controlString[0] = G_CMD_SPE;
+	gpib_cmd(controlString, 1);
+	//uart_puts("after SPE\r\n");
+}
+
+/**
+ * Disable (end) serial poll.All devices will return to normal behaviour as talker
+ */
+void gpib_spoll_end() {
+	uchar controlString[4];
+	controlString[0] = G_CMD_SPD;
+	//uart_puts("before SPD\r\n");
+	gpib_cmd(controlString, 1);
+}
+
+/**
+ * Serial poll a single device.
+ *
+ * Address device as talker and read in status byte from device. This function only makes sense during a serial poll.
+ * \param primary primary talker address of device
+ * \param secondary secondary talker address of device
+ * \return status byte.
+ */
+uchar gpib_spoll_single(uchar primary, uchar secondary) {
+	uchar controlString[10];
+	uchar b, e;
+
+	controlString[0] = primary;
+	//uart_puts("before talker address p write\r\n");
+	gpib_cmd(controlString, 1);
+	// handle secondary address if required
+	if (secondary != ADDRESS_NOT_SET) {
+		controlString[0] = secondary;
+		//uart_puts("before talker address s write\r\n");
+		gpib_cmd(controlString, 1);
+	}
+	//uart_puts("after talker address write\r\n");
+
+	// now receive data
+	//uart_puts("before status byte receive\r\n");
+	e = gpib_receive(&b);
+	//uart_puts("after status byte receive\r\n");
+	// status byte is now in b
+	if (secondary != ADDRESS_NOT_SET) {
+		sprintf((char*) controlString,
+				"Status byte from device primary=0x%02x,secondary=0x%02x (physical) = 0x%02x\n\r",
+				TalkerAddress2Address(primary), secondary, b);
+	} else {
+		sprintf((char*) controlString,
+				"Status byte from device primary=0x%02x (physical) = 0x%02x\n\r",
+				TalkerAddress2Address(primary), b);
+	}
+	uart_puts((char*) controlString);
+
+	// send UNT and UNL commands (unlisten and untalk)
+	// effect: all talker stop talking and all listeners stop listening
+	gpib_untalkUnlisten();
+	return b;
+}
+
+/**
  * Execute serial polling
  *
  * We determine the physical address (primary, secondary) of the device that created the SRQ.
@@ -591,25 +656,16 @@ void gpib_info(void) {
  * If any emitter is found, return value is != 0.
  */
 uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v) {
-	uchar b, e;
-	uchar primary = 0, secondary = 0, found = 0, foundPhysical =
-	ADDRESS_NOT_SET;
+	uchar b;
+	uchar primary = 0, secondary = 0, found = 0,
+			foundPhysical = ADDRESS_NOT_SET;
 	int i;
 
-	// send UNT and UNL commands (unlisten and untalk)
-	// effect: all talker stop talking and all listeners stop listening
-	cmd_buf[0] = G_CMD_UNT;
-	gpib_cmd(cmd_buf, 1);
-	cmd_buf[0] = G_CMD_UNL;
-	gpib_cmd(cmd_buf, 1);
+	// send unlisten and untalk to all
+	gpib_untalkUnlisten();
 
-	// serial poll enable
-	// effect: all devices will send status byte instead of normal data when addressed
-	// as talker
-	//uart_puts("before SPE\r\n");
-	cmd_buf[0] = G_CMD_SPE;
-	gpib_cmd(cmd_buf, 1);
-	//uart_puts("after SPE\r\n");
+	// serial poll sequence start
+	gpib_spoll_start();
 
 	// searching for SRQ emitter in a loop ...
 	for (i = 0; (controller.partners[i].primary != ADDRESS_NOT_SET) && !found;
@@ -619,47 +675,14 @@ uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v) {
 		primary = address2TalkerAddress(controller.partners[i].primary);
 		secondary = secondaryAdressToAdressByte(
 				controller.partners[i].secondary);
+		// query status byte from device
+		b = gpib_spoll_single(primary, secondary);
 
-		cmd_buf[0] = primary;
-		//uart_puts("before talker address write\r\n");
-		gpib_cmd(cmd_buf, 1);
-		//uart_puts("after talker address write\r\n");
-		// handle secondary address if required
-		if (secondary != ADDRESS_NOT_SET) {
-			cmd_buf[0] = secondary;
-			//uart_puts("before talker address write\r\n");
-			gpib_cmd(cmd_buf, 1);
-		}
-
-		// now receive data
-		//uart_puts("before status byte receive\r\n");
-		e = gpib_receive(&b);
-		//uart_puts("after status byte receive\r\n");
-		// status byte is now in b
-
-		if (secondary != ADDRESS_NOT_SET) {
-			sprintf((char*) cmd_buf,
-					"Status byte from device primary=0x%02x,secondary=0x%02x (physical) = 0x%02x\n\r",
-					TalkerAddress2Address(primary), secondary, b);
-		} else {
-			sprintf((char*) cmd_buf,
-					"Status byte from device primary=0x%02x (physical) = 0x%02x\n\r",
-					TalkerAddress2Address(primary), b);
-		}
-		uart_puts((char*) cmd_buf);
-
-		// send UNT and UNL commands (unlisten and untalk)
-		// effect: all talker stop talking and all listeners stop listening
-		cmd_buf[0] = G_CMD_UNT;
-		gpib_cmd(cmd_buf, 1);
-		cmd_buf[0] = G_CMD_UNL;
-		gpib_cmd(cmd_buf, 1);
-
+		// bit 6 of status byte of SRQ emitter is 1; check this
+		// when reading status byte from emitter, he releases SRQ line (may also be tested here)
 		if (b & (1 << 6)) {
 			found = primary;
 			foundPhysical = TalkerAddress2Address(found);
-			// bit 6 of status byte of SRQ emitter is 1
-			// when reading status byte from emitter, he releases SRQ line (may also be tested here)
 			sprintf((char*) cmd_buf,
 					"SRQ emitter is device = 0x%02x (physical address), secondary = 0x%02x\n\r",
 					foundPhysical, secondary);
@@ -667,12 +690,8 @@ uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v) {
 		}
 	}
 
-	// serial poll disable
-	// effect: all devices will return to normal behaviour as talker
-	cmd_buf[0] = G_CMD_SPD;
-	//uart_puts("before SPD\r\n");
-	gpib_cmd(cmd_buf, 1);
-	//uart_puts("after SPD\r\n");
+	// serial poll sequence end
+	gpib_spoll_end(cmd_buf);
 
 	// "return" values determined
 	*primary_v = primary;
