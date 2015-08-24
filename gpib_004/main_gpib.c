@@ -376,6 +376,14 @@ void handle_internal_commands(uchar *cmd) {
 		uart_puts(cmd);
 		gpib_set_partner_address(val, val1);
 		break;
+	case 'f':
+		/* find devices */
+		//stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
+//		sprintf(cmd, "Set partner address, primary: %u , secondary: %u\n\r",
+//				val, val1);
+//		uart_puts(cmd);
+		gpib_find_devices(10);
+		break;
 	case 's':
 		/* set partner secondary address */
 		val = atoi((char*) (&(cmd[2])));
@@ -533,6 +541,7 @@ void printHelp() {
 	uart_puts_P(".x - toggle Xon/Xoff flow control.\n\r");
 	uart_puts_P(".h - print help.\n\r");
 	uart_puts_P(".e - dump error queue.\n\r");
+	uart_puts_P(".f - find partners.\n\r");
 	uart_puts_P(".i - dump info about controller state.\n\r");
 }
 
