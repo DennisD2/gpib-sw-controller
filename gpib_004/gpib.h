@@ -111,6 +111,9 @@ extern uchar gpib_write_byte(uchar c, uchar isLastByte);
 extern void gpib_write_string(uchar *s);
 extern void gpib_write_command(uchar *s);
 
+// find all devices up to address maxAdress
+void gpib_find_devices(uchar maxAddress) ;
+
 // just for code testing
 extern void gpib_info(void);
 

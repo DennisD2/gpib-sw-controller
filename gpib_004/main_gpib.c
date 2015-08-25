@@ -539,17 +539,17 @@ void printHelp() {
 	uart_puts_P("Internal commands:\n\r");
 	uart_puts(
 			".a <primary> [<secondary>] - set prim./second. address of remote device\n\r");
-	uart_puts_P(".r toggle SRQ enablement\n\r");
+	uart_puts_P(".e - dump error queue.\n\r");
+	uart_puts_P(".f - find partners.\n\r");
+	uart_puts_P(".h - print help.\n\r");
+	uart_puts_P(".i - dump info about controller state.\n\r");
+	uart_puts_P(".r - toggle SRQ enablement\n\r");
 	uart_puts_P(".s <secondary> - set secondary address of remote device\n\r");
+	uart_puts_P(".x - toggle Xon/Xoff flow control.\n\r");
 	uart_puts_P(
 			".+ <n> - add partner device address to list of known devices.\n\r");
 	uart_puts_P(
 			".- <n> - remove partner device address from list of known devices.\n\r");
-	uart_puts_P(".x - toggle Xon/Xoff flow control.\n\r");
-	uart_puts_P(".h - print help.\n\r");
-	uart_puts_P(".e - dump error queue.\n\r");
-	uart_puts_P(".f - find partners.\n\r");
-	uart_puts_P(".i - dump info about controller state.\n\r");
 }
 
 /**

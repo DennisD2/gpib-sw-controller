@@ -4,13 +4,17 @@ Bugs
 
 Things to do
 ------------
-- code + command to enable/disable SRQs
+- Bring device-finding to live. I hoped that addressing each device in a serial poll and reading
+ in status byte will fail for non-existant devices. See gpib_find_devices(). But for unknown reason,
+ gpib_read never gives an error. Hm.
+- Alphabetically sort (?) help lines.
 - include code from community
 
 
 
 Things done
 -----------
+- code + command to enable/disable SRQs
 
 Things rejected
 ---------------
