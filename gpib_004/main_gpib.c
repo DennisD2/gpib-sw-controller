@@ -148,7 +148,7 @@ void printHelp();
 void handle_internal_commands(uchar *cmd);
 void receiveAnswer();
 
-#define ARB_TEST
+//#define ARB_TEST
 #ifdef ARB_TEST
 
 void arb_ramp() {
@@ -378,11 +378,17 @@ void handle_internal_commands(uchar *cmd) {
 		break;
 	case 'f':
 		/* find devices */
-		//stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
-//		sprintf(cmd, "Set partner address, primary: %u , secondary: %u\n\r",
-//				val, val1);
-//		uart_puts(cmd);
 		gpib_find_devices(10);
+		break;
+	case 'r':
+		/* SRQ enablement */
+		if (!srq_enabled) {
+			srq_enabled = 1;
+			uart_puts_P("SRQs enabled\n\r");
+		} else {
+			srq_enabled = 0;
+			uart_puts_P("SRQs disabled\n\r");
+		}
 		break;
 	case 's':
 		/* set partner secondary address */
@@ -497,7 +503,7 @@ uchar srq_occured(int* old_time) {
  * Handles SRQs by doing serial poll
  *
  */
-uchar handle_srq(uchar *buf, int *buf_ptr) {
+uchar srq_handle(uchar *buf, int *buf_ptr) {
 	uchar command_ready = 0;
 	uint8_t primary, secondary;
 
@@ -508,9 +514,9 @@ uchar handle_srq(uchar *buf, int *buf_ptr) {
 		srq_enabled = 0;
 		return command_ready;
 	}
-	gpib_set_partner_address(primary, secondary);
 
 	if (gpib_get_flavour() == FLAVOUR_TEK) {
+		gpib_set_partner_address(primary, secondary);
 		// Tek: check status for reason
 		buf[0] = 'E';
 		buf[1] = 'V';
@@ -533,6 +539,7 @@ void printHelp() {
 	uart_puts_P("Internal commands:\n\r");
 	uart_puts(
 			".a <primary> [<secondary>] - set prim./second. address of remote device\n\r");
+	uart_puts_P(".r toggle SRQ enablement\n\r");
 	uart_puts_P(".s <secondary> - set secondary address of remote device\n\r");
 	uart_puts_P(
 			".+ <n> - add partner device address to list of known devices.\n\r");
@@ -682,7 +689,7 @@ void state_machine() {
 			// the returned command_ready was interpreted to read in an answer
 			// but this was turned of for new input loop
 			// next two lines replace that but must be tested.
-			if (handle_srq(buf, &buf_ptr)) {
+			if (srq_handle(buf, &buf_ptr)) {
 				state = S_GPIB_ANSWER;
 			}
 		}

@@ -71,6 +71,8 @@
 
 /** adress byte for secondary address is (adr | 0110.0000=0x60) */
 #define secondaryAdressToAdressByte(adr) (adr|0x60)
+/** secondary address is adress byte (adrbyte & 1001.1111=0x9f) */
+#define secondaryAdressByteToAdress(adr) (adr&0x9f)
 
 /** maximum size of active partner list */
 #define MAX_PARTNER 5 

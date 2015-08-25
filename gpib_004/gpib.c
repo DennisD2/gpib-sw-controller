@@ -210,6 +210,7 @@ uchar gpib_receive(uchar* _byte) {
 	//uart_puts("\n\rgpib_receive()\n\r");
 
 	if (controller.talks == 1) {
+		uart_puts("\n\rError: You shall not talk to yourself.\n\r");
 		*_byte = 0xff;
 		return 0xff;
 	}
@@ -534,14 +535,14 @@ void gpib_info(void) {
 	uchar dav, nrfd, ndac, eoi, atn, srq, ifc, ren;
 	extern uchar buf[80];
 
-	sprintf(buf, "Partner address: primary: %u, secondary: %u\n\r",
+	sprintf(buf, "Partner address(primary,secondary): (%u,%u)\n\r",
 			gpib_get_partner_pad(), gpib_get_partner_sad());
 	uart_puts(buf);
 
 	uart_puts("Partner list\n\r");
 	for (int i = 0; i < MAX_PARTNER; i++) {
 		if (controller.partners[i].primary != ADDRESS_NOT_SET) {
-			sprintf(buf, "Partner address: primary: %u, secondary: %u\n\r",
+			sprintf(buf, "Partner(primary,secondary) : (%u,%u)\n\r",
 					controller.partners[i].primary,
 					controller.partners[i].secondary);
 			uart_puts(buf);
@@ -642,12 +643,13 @@ uchar gpib_spoll_single(uchar primary, uchar secondary, uchar *b) {
 	// status byte is now in b
 	if (secondary != ADDRESS_NOT_SET) {
 		sprintf((char*) controlString,
-				"Status byte from device primary=0x%02x,secondary=0x%02x (physical) = 0x%02x\n\r",
-				TalkerAddress2Address(primary), secondary, *b);
+				"Status byte 0x%02x from device(primary,secondary) = (0x%02x,0x%02x)\n\r",
+				*b, TalkerAddress2Address(primary),
+				secondaryAdressByteToAdress(secondary));
 	} else {
 		sprintf((char*) controlString,
-				"Status byte from device primary=0x%02x (physical) = 0x%02x\n\r",
-				TalkerAddress2Address(primary), *b);
+				"Status byte 0x%02x from device(primary) = 0x%02x\n\r", *b,
+				TalkerAddress2Address(primary));
 	}
 	uart_puts((char*) controlString);
 
@@ -670,8 +672,8 @@ uchar gpib_spoll_single(uchar primary, uchar secondary, uchar *b) {
  */
 uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v) {
 	uchar b, e;
-	uchar primary = 0, secondary = 0, found = 0,
-			foundPhysical = ADDRESS_NOT_SET;
+	uchar primary = 0, secondary, found = 0, foundPrimary = ADDRESS_NOT_SET,
+			foundSecondary = ADDRESS_NOT_SET;
 	int i;
 
 	// send unlisten and untalk to all
@@ -686,23 +688,30 @@ uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v) {
 
 		// set partner to talker mode
 		primary = address2TalkerAddress(controller.partners[i].primary);
-		secondary = secondaryAdressToAdressByte(
-				controller.partners[i].secondary);
+		if (controller.partners[i].secondary != ADDRESS_NOT_SET) {
+			secondary = secondaryAdressToAdressByte(
+					controller.partners[i].secondary);
+		} else {
+			secondary = ADDRESS_NOT_SET;
+		}
 		// query status byte from device
 		e = gpib_spoll_single(primary, secondary, &b);
-		if (e==0xff) {
-			// this device did not respond at all !?!
-			continue;
-		}
 
 		// bit 6 of status byte of SRQ emitter is 1; check this
 		// when reading status byte from emitter, he releases SRQ line (may also be tested here)
 		if (b & (1 << 6)) {
-			found = primary;
-			foundPhysical = TalkerAddress2Address(found);
-			sprintf((char*) cmd_buf,
-					"SRQ emitter is device = 0x%02x (physical address), secondary = 0x%02x\n\r",
-					foundPhysical, secondary);
+			found = 1;
+			foundPrimary = controller.partners[i].primary;
+			foundSecondary = controller.partners[i].secondary;
+			if (controller.partners[i].secondary != ADDRESS_NOT_SET) {
+				sprintf((char*) cmd_buf,
+						"SRQ emitter is device(primary,secondary) = (0x%02x,0x%02x)\n\r",
+						foundPrimary, foundSecondary);
+			} else {
+				sprintf((char*) cmd_buf,
+						"SRQ emitter is device(primary) = 0x%02x\n\r",
+						foundPrimary);
+			}
 			uart_puts((char*) cmd_buf);
 		}
 	}
@@ -711,8 +720,8 @@ uchar gpib_serial_poll(uint8_t *primary_v, uint8_t* secondary_v) {
 	gpib_spoll_end(cmd_buf);
 
 	// "return" values determined
-	*primary_v = primary;
-	*secondary_v = secondary;
+	*primary_v = foundPrimary;
+	*secondary_v = foundSecondary;
 
 	return found;
 }
@@ -835,16 +844,16 @@ uchar gpib_device_exists(uchar primary, uchar secondary) {
 	// serial poll sequence end
 	gpib_spoll_end(cmd_buf);
 
-	return e!=0xff;
+	return e != 0xff;
 }
 
-void gpib_find_devices(uchar maxAddress ) {
+void gpib_find_devices(uchar maxAddress) {
 	char txt[50];
-	for (int i=1; i<maxAddress; i++) {
+	for (int i = 1; i < maxAddress; i++) {
 		if (gpib_device_exists(address2TalkerAddress(i), ADDRESS_NOT_SET)) {
 			sprintf("Device found at address: %d", i);
 		}
-		if (gpib_device_exists(address2TalkerAddress(i),0)) {
+		if (gpib_device_exists(address2TalkerAddress(i), 0)) {
 			sprintf("Device found at address: (%d,0)", i);
 		}
 	}
