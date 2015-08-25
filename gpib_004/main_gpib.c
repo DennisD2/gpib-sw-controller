@@ -547,9 +547,9 @@ void printHelp() {
 	uart_puts_P(".s <secondary> - set secondary address of remote device.\n\r");
 	uart_puts_P(".x - toggle Xon/Xoff flow control.\n\r");
 	uart_puts_P(
-			".+ <n> - add partner device address to list of known devices.\n\r");
+			".+ <p> [<s>] - add partner device address to list of known devices.\n\r");
 	uart_puts_P(
-			".- <n> - remove partner device address from list of known devices.\n\r");
+			".- <p> [<s>] - remove partner device address from list of known devices.\n\r");
 }
 
 /**
