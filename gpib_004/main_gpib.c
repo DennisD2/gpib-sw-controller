@@ -140,6 +140,8 @@ uint8_t xonXoffMode = 1;
 uint8_t srq_enabled = 1;
 /** if !=0 break lines received from gpib at that line position */
 uint8_t linebreak = 80;
+/** machine output (raw output) for non-human access */
+uint8_t machineOutput = 0;
 
 #define COMMAND_INPUT_BUFFER_SIZE 80
 
@@ -212,11 +214,11 @@ void check_errors() {
 	char *error_cmd = "SYST:ERR?";
 	uchar msg[80];
 	uchar b, e;
-	uchar colptr = 0;
+	//uchar colptr = 0;
 	uchar allErrorsRead = 0;
 
 	while (!allErrorsRead) {
-		gpib_write_command(error_cmd);
+		gpib_write_command((uchar*)error_cmd);
 		gpib_prepare_read();
 		// read the answer until EOI is detected (then e becomes true)
 		uchar i = 0;
@@ -230,7 +232,7 @@ void check_errors() {
 		msg[i++] = '\r';
 		msg[i] = 0x00;
 		// check if all errors have been read
-		if (strncmp(msg,"+0,",3)==0) {
+		if (strncmp((char*)msg,"+0,",3)==0) {
 			allErrorsRead=1;
 		} else {
 			uart_puts((char*) msg);
@@ -371,14 +373,33 @@ void handle_internal_commands(uchar *cmd) {
 	case 'a':
 		/* set partner primary+secondary address */
 		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
-		sprintf(cmd, "Set partner address, primary: %u , secondary: %u\n\r",
+		sprintf((char*)cmd, "Set partner address, primary: %u , secondary: %u\n\r",
 				val, val1);
-		uart_puts(cmd);
+		uart_puts((char*)cmd);
 		gpib_set_partner_address(val, val1);
+		break;
+	case 'e':
+		uart_puts_P("Check errors\n\r");
+		check_errors();
 		break;
 	case 'f':
 		/* find devices */
 		gpib_find_devices(10);
+		break;
+	case 'h':
+		/* print some usage infos */
+		printHelp();
+		break;
+	case 'i':
+		gpib_info();
+		sprintf((char*)cmd, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
+		uart_puts((char*)cmd);
+		sprintf((char*)cmd, "RS232 echo: %u\n\r", rs232_remote_echo);
+		uart_puts((char*)cmd);
+		sprintf((char*)cmd, "SRQs enabled: %u\n\r", srq_enabled);
+		uart_puts((char*)cmd);
+		sprintf((char*)cmd, "Linebreak value: %u\n\r", linebreak);
+		uart_puts((char*)cmd);
 		break;
 	case 'r':
 		/* SRQ enablement */
@@ -393,23 +414,23 @@ void handle_internal_commands(uchar *cmd) {
 	case 's':
 		/* set partner secondary address */
 		val = atoi((char*) (&(cmd[2])));
-		sprintf(cmd, "Set partner secondary address to %u\n\r", val);
-		uart_puts(cmd);
+		sprintf((char*)cmd, "Set partner secondary address to %u\n\r", val);
+		uart_puts((char*)cmd);
 		gpib_set_partner_secondary(val);
 		break;
 	case '+':
 		/* add device */
 		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
-		sprintf(cmd, "Add device, primary: %u , secondary: %u\n\r", val, val1);
-		uart_puts(cmd);
+		sprintf((char*)cmd, "Add device, primary: %u , secondary: %u\n\r", val, val1);
+		uart_puts((char*)cmd);
 		gpib_add_partner_address(val, val1);
 		break;
 	case '-':
 		/* add device */
 		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
-		sprintf(cmd, "Remove device, primary: %u , secondary: %u\n\r", val,
+		sprintf((char*)cmd, "Remove device, primary: %u , secondary: %u\n\r", val,
 				val1);
-		uart_puts(cmd);
+		uart_puts((char*)cmd);
 		gpib_remove_partner_address(val, val1);
 		break;
 	case 'x':
@@ -424,24 +445,15 @@ void handle_internal_commands(uchar *cmd) {
 			uart_puts_P("xon/xoff flowcontrol off\n\r");
 		}
 		break;
-	case 'h':
-		/* print some usage infos */
-		printHelp();
-		break;
-	case 'i':
-		gpib_info();
-		sprintf(cmd, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
-		uart_puts(cmd);
-		sprintf(cmd, "RS232 echo: %u\n\r", rs232_remote_echo);
-		uart_puts(cmd);
-		sprintf(cmd, "SRQs enabled: %u\n\r", srq_enabled);
-		uart_puts(cmd);
-		sprintf(cmd, "Linebreak value: %u\n\r", linebreak);
-		uart_puts(cmd);
-		break;
-	case 'e':
-		uart_puts_P("Check errors\n\r");
-		check_errors();
+	case 'y':
+		/* machine output control */
+		if (!machineOutput) {
+			machineOutput = 1;
+				uart_puts_P("machine output on\n\r");
+		} else {
+			machineOutput = 0;
+			uart_puts_P("machine output off\n\r");
+		}
 		break;
 #ifdef ARB_TEST
 	case 'z':
