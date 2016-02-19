@@ -145,6 +145,10 @@ uint8_t machineOutput = 0;
 
 #define COMMAND_INPUT_BUFFER_SIZE 80
 
+#define ANSWERBUFFER_SIZE 16
+uchar answerBuffer[ANSWERBUFFER_SIZE];
+uint8_t answerBufferPtr = 0;
+
 uchar input_process(uchar *buf, int *ptr);
 void printHelp();
 void handle_internal_commands(uchar *cmd);
@@ -218,7 +222,7 @@ void check_errors() {
 	uchar allErrorsRead = 0;
 
 	while (!allErrorsRead) {
-		gpib_write_command((uchar*)error_cmd);
+		gpib_write_command((uchar*) error_cmd);
 		gpib_prepare_read();
 		// read the answer until EOI is detected (then e becomes true)
 		uchar i = 0;
@@ -232,8 +236,8 @@ void check_errors() {
 		msg[i++] = '\r';
 		msg[i] = 0x00;
 		// check if all errors have been read
-		if (strncmp((char*)msg,"+0,",3)==0) {
-			allErrorsRead=1;
+		if (strncmp((char*) msg, "+0,", 3) == 0) {
+			allErrorsRead = 1;
 		} else {
 			uart_puts((char*) msg);
 		}
@@ -373,9 +377,10 @@ void handle_internal_commands(uchar *cmd) {
 	case 'a':
 		/* set partner primary+secondary address */
 		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
-		sprintf((char*)cmd, "Set partner address, primary: %u , secondary: %u\n\r",
-				val, val1);
-		uart_puts((char*)cmd);
+		sprintf((char*) cmd,
+				"Set partner address, primary: %u , secondary: %u\n\r", val,
+				val1);
+		uart_puts((char*) cmd);
 		gpib_set_partner_address(val, val1);
 		break;
 	case 'e':
@@ -392,14 +397,14 @@ void handle_internal_commands(uchar *cmd) {
 		break;
 	case 'i':
 		gpib_info();
-		sprintf((char*)cmd, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
-		uart_puts((char*)cmd);
-		sprintf((char*)cmd, "RS232 echo: %u\n\r", rs232_remote_echo);
-		uart_puts((char*)cmd);
-		sprintf((char*)cmd, "SRQs enabled: %u\n\r", srq_enabled);
-		uart_puts((char*)cmd);
-		sprintf((char*)cmd, "Linebreak value: %u\n\r", linebreak);
-		uart_puts((char*)cmd);
+		sprintf((char*) cmd, "Xon/Xoff flow control: %u\n\r", xonXoffMode);
+		uart_puts((char*) cmd);
+		sprintf((char*) cmd, "RS232 echo: %u\n\r", rs232_remote_echo);
+		uart_puts((char*) cmd);
+		sprintf((char*) cmd, "SRQs enabled: %u\n\r", srq_enabled);
+		uart_puts((char*) cmd);
+		sprintf((char*) cmd, "Linebreak value: %u\n\r", linebreak);
+		uart_puts((char*) cmd);
 		break;
 	case 'r':
 		/* SRQ enablement */
@@ -414,23 +419,24 @@ void handle_internal_commands(uchar *cmd) {
 	case 's':
 		/* set partner secondary address */
 		val = atoi((char*) (&(cmd[2])));
-		sprintf((char*)cmd, "Set partner secondary address to %u\n\r", val);
-		uart_puts((char*)cmd);
+		sprintf((char*) cmd, "Set partner secondary address to %u\n\r", val);
+		uart_puts((char*) cmd);
 		gpib_set_partner_secondary(val);
 		break;
 	case '+':
 		/* add device */
 		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
-		sprintf((char*)cmd, "Add device, primary: %u , secondary: %u\n\r", val, val1);
-		uart_puts((char*)cmd);
+		sprintf((char*) cmd, "Add device, primary: %u , secondary: %u\n\r", val,
+				val1);
+		uart_puts((char*) cmd);
 		gpib_add_partner_address(val, val1);
 		break;
 	case '-':
 		/* add device */
 		stringToTwoUchars((char*) (&(cmd[2])), &val, &val1);
-		sprintf((char*)cmd, "Remove device, primary: %u , secondary: %u\n\r", val,
-				val1);
-		uart_puts((char*)cmd);
+		sprintf((char*) cmd, "Remove device, primary: %u , secondary: %u\n\r",
+				val, val1);
+		uart_puts((char*) cmd);
 		gpib_remove_partner_address(val, val1);
 		break;
 	case 'x':
@@ -449,14 +455,14 @@ void handle_internal_commands(uchar *cmd) {
 		/* machine output control */
 		if (!machineOutput) {
 			machineOutput = 1;
-				uart_puts_P("machine output on\n\r");
+			uart_puts_P("machine output on\n\r");
 		} else {
 			machineOutput = 0;
 			uart_puts_P("machine output off\n\r");
 		}
 		break;
 #ifdef ARB_TEST
-	case 'z':
+		case 'z':
 		uart_puts("arb\n\r");
 		arb();
 		uart_puts("arb done\n\r");
@@ -466,6 +472,9 @@ void handle_internal_commands(uchar *cmd) {
 		uart_puts_P("unknown command\n\r");
 		printHelp();
 		break;
+	}
+	if (machineOutput) {
+		uart_puts("[EOI]");
 	}
 }
 
@@ -477,15 +486,40 @@ void receiveAnswer() {
 	uchar colptr = 0;
 
 	gpib_prepare_read();
+	answerBufferPtr = 0;
 	// read the answer until EOI is detected (then e becomes true)
 	do {
 		// gpib bus receive
 		e = gpib_receive(&b);
-		// write out character
-		uart_putc(b);
-		if (linebreak && (colptr++ == linebreak)) {
-			uart_puts_P("\n\r");
-			colptr = 0;
+		if (machineOutput) {
+			answerBuffer[answerBufferPtr++] = b;
+			//uart_putc(b);
+			char msg[16];
+			if (answerBufferPtr == ANSWERBUFFER_SIZE) {
+				// buffer full -> send it
+				sprintf(msg, "[%d]", ANSWERBUFFER_SIZE);
+				uart_puts(msg);
+				for (uint8_t i = 0; i < ANSWERBUFFER_SIZE; i++) {
+					uart_putc(answerBuffer[i]);
+				}
+				answerBufferPtr = 0;
+			}
+			if (e == 0x01) {
+				// EOI received, flush out answer bytes
+				sprintf(msg, "[%d,EOI]", answerBufferPtr);
+				uart_puts(msg);
+				for (uint8_t i = 0; i < answerBufferPtr; i++) {
+					uart_putc(answerBuffer[i]);
+				}
+				answerBufferPtr = 0;
+			}
+		} else {
+			// write out character
+			uart_putc(b);
+			if (linebreak && (colptr++ == linebreak)) {
+				uart_puts_P("\n\r");
+				colptr = 0;
+			}
 		}
 		//sprintf((char*)buf,"%02x - %c\n\r", b, b);
 		//uart_puts((char*)buf);
@@ -587,7 +621,8 @@ void state_machine() {
 	uchar state = S_INITIAL;
 	for (;;) {
 		if (state == S_INITIAL) {
-			if (do_prompt) {
+			// suppress prompt when outputing to a machine
+			if (do_prompt && !machineOutput) {
 				uart_puts("> ");
 				do_prompt = 0;
 				is_query = 0;
@@ -688,8 +723,12 @@ void state_machine() {
 		if (state == S_GPIB_NO_ANSWER || state == S_FINAL) {
 			// untalk/unlisten all partners
 			gpib_untalkUnlisten();
-			// some devices do not send cr,lf at command end, so create it always itself
-			uart_puts_P("\n\r");
+			if (machineOutput) {
+				uart_puts_P("[EOI]");
+			} else {
+				// some devices do not send cr,lf at command end, so create it always itself
+				uart_puts_P("\n\r");
+			}
 			do_prompt = 1;
 			state = S_INITIAL;
 		}
