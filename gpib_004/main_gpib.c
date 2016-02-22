@@ -488,23 +488,13 @@ void receiveAnswer() {
 	gpib_prepare_read();
 	answerBufferPtr = 0;
 	// read the answer until EOI is detected (then e becomes true)
+	char msg[16];
 	do {
 		// gpib bus receive
 		e = gpib_receive(&b);
+		//uart_putc(b);
 		if (machineOutput) {
-			answerBuffer[answerBufferPtr++] = b;
-			//uart_putc(b);
-			char msg[16];
-			if (answerBufferPtr == ANSWERBUFFER_SIZE) {
-				// buffer full -> send it
-				sprintf(msg, "[%d]", ANSWERBUFFER_SIZE);
-				uart_puts(msg);
-				for (uint8_t i = 0; i < ANSWERBUFFER_SIZE; i++) {
-					uart_putc(answerBuffer[i]);
-				}
-				answerBufferPtr = 0;
-			}
-			if (e == 0x01) {
+			if (e == 0x01 || e == 0xff) {
 				// EOI received, flush out answer bytes
 				sprintf(msg, "[%d,EOI]", answerBufferPtr);
 				uart_puts(msg);
@@ -512,6 +502,17 @@ void receiveAnswer() {
 					uart_putc(answerBuffer[i]);
 				}
 				answerBufferPtr = 0;
+			} else {
+				answerBuffer[answerBufferPtr++] = b;
+				if (answerBufferPtr == ANSWERBUFFER_SIZE) {
+					// buffer full -> send it
+					sprintf(msg, "[%d]", ANSWERBUFFER_SIZE);
+					uart_puts(msg);
+					for (uint8_t i = 0; i < ANSWERBUFFER_SIZE; i++) {
+						uart_putc(answerBuffer[i]);
+					}
+					answerBufferPtr = 0;
+				}
 			}
 		} else {
 			// write out character
