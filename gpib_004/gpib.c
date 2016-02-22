@@ -111,9 +111,10 @@ void gpib_init(void) {
 	DDRB &= ~_BV(G_REN); // REN  
 	DDRB &= ~_BV(G_IFC); // IFC  
 
-	// init handshake lines
-	assign_bit(DDRD, PORTD, G_NRFD);
-	// not ready for data now
+	// init handshake lines - not ready for data now
+	//assign_bit(DDRD, PORTD, G_NRFD);
+	release_bit(DDRD, PORTD, G_NRFD);
+	// release 'data accepted'
 	release_bit(DDRD, PORTD, G_NDAC);
 	// initially: ok so far
 }
@@ -215,12 +216,14 @@ uchar gpib_receive(uchar* _byte) {
 		return 0xff;
 	}
 
-	// handshake: set nrfd, means i am ready to receive some data
+	// handshake: release nrfd, means I am ready to receive some data
 	release_bit(DDRD, PORTD, G_NRFD);
+	// handshake: I have not accepted/completed the read so far
 	assign_bit(DDRD, PORTD, G_NDAC);
 
 	//gpib_info();
 
+	// handshake: wait for data valid from talker (then DAV is asserted)
 #ifdef WITH_TIMEOUT
 	timeout = s + 5;
 	//gpib_info();
@@ -234,14 +237,19 @@ uchar gpib_receive(uchar* _byte) {
 	loop_until_bit_is_clear(PIND,G_DAV);
 #endif
 
-	// handshake: clear NRFD, means i am busy now to read data
+	// handshake: assign NRFD, means I am busy now to read data
 	assign_bit(DDRD, PORTD, G_NRFD);
-	// read data
+
+	// read in data
 	byte = PINA ^ 0xff;
 
-	// handshake: set ndac, means i have completed/accepted the read
+	// check if last byte of transmission
+	eoi = bit_is_clear(PIND, G_EOI);
+
+	// handshake: release ndac, means I have completed/accepted the read
 	release_bit(DDRD, PORTD, G_NDAC);
 
+	// wait until current DAV period is over (then DAV is released)
 #ifdef WITH_TIMEOUT
 	timeout = s + 5;
 	//gpib_info();
@@ -254,11 +262,6 @@ uchar gpib_receive(uchar* _byte) {
 #else
 	loop_until_bit_is_set(PIND,G_DAV);
 #endif
-	// handshake: clear ndac (this is a prerequisite for receive next byte)
-	assign_bit(DDRD, PORTD, G_NDAC);
-
-	// check if last byte of transmission
-	eoi = bit_is_clear(PIND, G_EOI);
 
 	*_byte = byte;
 
