@@ -11,6 +11,7 @@
  * \defgroup gpib_lib GPIB Library
  * \file gpib.c
  * \brief This file contains the implementation of the GPIB functionality.
+ *  bla
  */
 
 #include <stdlib.h>
