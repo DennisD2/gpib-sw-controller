@@ -117,4 +117,5 @@ void gpib_find_devices(uchar maxAddress) ;
 // just for code testing
 extern void gpib_info(void);
 
+void gpib_read_until_eoi(uint8_t machineOutput, uint8_t linebreak) ;
 #endif /*GPIB_H_*/

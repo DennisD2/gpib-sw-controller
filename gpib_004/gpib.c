@@ -113,8 +113,7 @@ void gpib_init(void) {
 	DDRB &= ~_BV(G_IFC); // IFC  
 
 	// init handshake lines - not ready for data now
-	//assign_bit(DDRD, PORTD, G_NRFD);
-	release_bit(DDRD, PORTD, G_NRFD);
+	assign_bit(DDRD, PORTD, G_NRFD);
 	// release 'data accepted'
 	release_bit(DDRD, PORTD, G_NDAC);
 	// initially: ok so far
@@ -211,25 +210,21 @@ uchar gpib_receive(uchar* _byte) {
 
 	//uart_puts("\n\rgpib_receive()\n\r");
 
-	if (controller.talks == 1) {
-		uart_puts("\n\rError: You shall not talk to yourself.\n\r");
-		*_byte = 0xff;
-		return 0xff;
-	}
-
-	// handshake: release nrfd, means I am ready to receive some data
-	release_bit(DDRD, PORTD, G_NRFD);
 	// handshake: I have not accepted/completed the read so far
 	assign_bit(DDRD, PORTD, G_NDAC);
+	// handshake: release nrfd, means I am ready to receive some data
+	release_bit(DDRD, PORTD, G_NRFD);
 
 	//gpib_info();
 
 	// handshake: wait for data valid from talker (then DAV is asserted)
+	s = 0;
 #ifdef WITH_TIMEOUT
 	timeout = s + 5;
 	//gpib_info();
 	while ((PIND & _BV(G_DAV)) && (s <= timeout)) {
 		if (s == timeout) {
+			gpib_info();
 			uart_puts("\n\rError: DAV timeout (1)\n\r");
 			return 0xff;
 		}
@@ -266,8 +261,76 @@ uchar gpib_receive(uchar* _byte) {
 
 	*_byte = byte;
 
+	assign_bit(DDRD, PORTD, G_NDAC);
+
 	return eoi;
 }
+
+#ifdef FAKE_READ
+uchar fake_receive(uchar* _byte);
+static int u;
+#endif
+
+/**
+ * Reads the answer until EOI is detected (then e becomes true)
+ */
+void gpib_read_until_eoi(uint8_t machineOutput, uint8_t linebreak) {
+	uchar b, e;
+	uchar colptr = 0;
+
+	if (controller.talks == 1) {
+		uart_puts("\n\rError: You shall not talk to yourself.\n\r");
+	}
+
+#ifdef FAKE_READ
+	u=0;
+#endif
+	do {
+		// gpib bus receive
+#ifdef FAKE_READ
+		e = fake_receive(&b);
+#else
+		e = gpib_receive(&b);
+#endif
+		if (machineOutput && (e == 0xff)) {
+			uart_puts("[ERREOI]");
+			return;
+		}
+		// write out character
+		uart_putc(b);
+
+		if (linebreak && (colptr++ == linebreak)) {
+			uart_puts_P("\n\r");
+			colptr = 0;
+		}
+
+	} while (!e);
+}
+
+#ifdef FAKE_READ
+/**
+ * Fake receive function for testing.
+ * Creates some char and EOI condition.
+ *
+ * Requires:
+ * uchar fake_receive(uchar* _byte) ;
+ * static int u;
+ *
+ */
+uchar fake_receive(uchar* _byte) {
+	uchar e;
+	int t;
+	if (u++ == 100) {
+		e = 0x01;
+	} else {
+		e = 0x00;
+	}
+	*_byte = 'A' + (u % (126 - 'A'));
+//	for (t = 0; t < 20000;)
+//		t++;
+	return e;
+}
+#endif
 
 /**
  * Assign bus to me

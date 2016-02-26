@@ -145,9 +145,9 @@ uint8_t machineOutput = 0;
 
 #define COMMAND_INPUT_BUFFER_SIZE 80
 
-#define ANSWERBUFFER_SIZE 16
-uchar answerBuffer[ANSWERBUFFER_SIZE];
-uint8_t answerBufferPtr = 0;
+//#define ANSWERBUFFER_SIZE 16
+//uchar answerBuffer[ANSWERBUFFER_SIZE];
+//uint8_t answerBufferPtr = 0;
 
 uchar input_process(uchar *buf, int *ptr);
 void printHelp();
@@ -478,6 +478,7 @@ void handle_internal_commands(uchar *cmd) {
 	}
 }
 
+#ifdef SINGLE_CHAR_ANSWER
 /**
  * Receives answer after command was sent.
  */
@@ -486,46 +487,38 @@ void receiveAnswer() {
 	uchar colptr = 0;
 
 	gpib_prepare_read();
-	answerBufferPtr = 0;
+	//answerBufferPtr = 0;
 	// read the answer until EOI is detected (then e becomes true)
-	char msg[8];
 	do {
 		// gpib bus receive
 		e = gpib_receive(&b);
 		//uart_putc(b);
 		if (machineOutput) {
-			if (e == 0x01 || e == 0xff) {
-				// EOI received, flush out answer bytes
-				sprintf(msg, "[EOI]");
-				uart_puts(msg);
-				for (uint8_t i = 0; i < answerBufferPtr; i++) {
-					uart_putc(answerBuffer[i]);
-				}
-				answerBufferPtr = 0;
-			} else {
-				answerBuffer[answerBufferPtr++] = b;
-				if (answerBufferPtr == ANSWERBUFFER_SIZE) {
-					// buffer full -> send it
-					//sprintf(msg, "[%d]", ANSWERBUFFER_SIZE);
-					//uart_puts(msg);
-					for (uint8_t i = 0; i < ANSWERBUFFER_SIZE; i++) {
-						uart_putc(answerBuffer[i]);
-					}
-					answerBufferPtr = 0;
-				}
+			if (e == 0x01) {
+				uart_puts("[EOI]");
 			}
-		} else {
-			// write out character
-			uart_putc(b);
-			if (linebreak && (colptr++ == linebreak)) {
-				uart_puts_P("\n\r");
-				colptr = 0;
+			if (e == 0xff) {
+				uart_puts("[ERREOI]");
 			}
 		}
+		// write out character
+		uart_putc(b);
+		if (linebreak && (colptr++ == linebreak)) {
+			uart_puts_P("\n\r");
+			colptr = 0;
+		}
+
 		//sprintf((char*)buf,"%02x - %c\n\r", b, b);
 		//uart_puts((char*)buf);
 	} while (!e);
 }
+#else
+
+void receiveAnswer() {
+	gpib_prepare_read();
+	gpib_read_until_eoi(machineOutput, linebreak);
+}
+#endif
 
 /**
  * Check if a SRQ occured
@@ -622,7 +615,7 @@ void state_machine() {
 	uchar state = S_INITIAL;
 	for (;;) {
 		if (state == S_INITIAL) {
-			// suppress prompt when outputing to a machine
+			// suppress prompt when outputting to a machine
 			if (do_prompt && !machineOutput) {
 				uart_puts("> ");
 				do_prompt = 0;
