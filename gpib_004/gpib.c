@@ -209,7 +209,6 @@ uchar gpib_receive(uchar* _byte) {
 	uchar byte, eoi;
 
 	//uart_puts("\n\rgpib_receive()\n\r");
-
 	// handshake: I have not accepted/completed the read so far
 	assign_bit(DDRD, PORTD, G_NDAC);
 	// handshake: release nrfd, means I am ready to receive some data
@@ -896,7 +895,6 @@ uchar gpib_remove_partner_address(uchar primary, uchar secondary) {
  */
 uchar gpib_device_exists(uchar primary, uchar secondary) {
 	uchar b, e;
-	uchar found = 0, foundPhysical = ADDRESS_NOT_SET;
 
 	// send unlisten and untalk to all
 	gpib_untalkUnlisten();
@@ -915,13 +913,12 @@ uchar gpib_device_exists(uchar primary, uchar secondary) {
 }
 
 void gpib_find_devices(uchar maxAddress) {
-	char txt[50];
 	for (int i = 1; i < maxAddress; i++) {
 		if (gpib_device_exists(address2TalkerAddress(i), ADDRESS_NOT_SET)) {
-			sprintf("Device found at address: %d", i);
+			printf("Device found at address: %d", i);
 		}
 		if (gpib_device_exists(address2TalkerAddress(i), 0)) {
-			sprintf("Device found at address: (%d,0)", i);
+			printf("Device found at address: (%d,0)", i);
 		}
 	}
 }
