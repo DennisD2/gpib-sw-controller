@@ -24,7 +24,7 @@ typedef unsigned long ulong;
 /*#define F_CPU 1000000*/
 #endif
 
-#define UART_BAUD_RATE      38400     /**< baudrate, e.g 19200 */
+#define UART_BAUD_RATE      38400     /**< baudrate, e.g 19200 , 38400 , 57600 , 115200 */
 #define DI() uart_init( UART_BAUD_SELECT(UART_BAUD_RATE,F_CPU) )
 
 #endif /*DEFS_H_*/

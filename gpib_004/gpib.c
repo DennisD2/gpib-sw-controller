@@ -207,7 +207,7 @@ void gpib_untalkUnlisten() {
 uchar gpib_receive(uchar* _byte) {
 	int timeout;
 	uchar byte, eoi;
-
+	cli();
 	//uart_puts("\n\rgpib_receive()\n\r");
 	// handshake: I have not accepted/completed the read so far
 	assign_bit(DDRD, PORTD, G_NDAC);
@@ -218,7 +218,7 @@ uchar gpib_receive(uchar* _byte) {
 
 	// handshake: wait for data valid from talker (then DAV is asserted)
 	s = 0;
-#ifdef WITH_TIMEOUT
+#ifdef WITH_TIMEOUT0
 	timeout = s + 5;
 	//gpib_info();
 	while ((PIND & _BV(G_DAV)) && (s <= timeout)) {
@@ -245,7 +245,7 @@ uchar gpib_receive(uchar* _byte) {
 	release_bit(DDRD, PORTD, G_NDAC);
 
 	// wait until current DAV period is over (then DAV is released)
-#ifdef WITH_TIMEOUT
+#ifdef WITH_TIMEOUT0
 	timeout = s + 5;
 	//gpib_info();
 	while (!(PIND & _BV(G_DAV)) && (s <= timeout)) {
@@ -261,7 +261,7 @@ uchar gpib_receive(uchar* _byte) {
 	*_byte = byte;
 
 	assign_bit(DDRD, PORTD, G_NDAC);
-
+	sei();
 	return eoi;
 }
 
