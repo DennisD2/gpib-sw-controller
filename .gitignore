@@ -1,9 +1,4 @@
-.svn/*
-.settings/.svn/*
+/.idea
 *.hex
-doc/html/.svn/*
-*/Debug/*
-gpib_004/Debug/gpib.d
 *.d
 *.o
-/.idea

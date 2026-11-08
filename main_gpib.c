@@ -119,9 +119,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "uart.h"
+#include "gpib_004/uart.h"
 #include "gpib.h"
-#include "timer16.h"
+#include "gpib_004/timer16.h"
 
 /** state machine states, see main() */
 #define S_INITIAL 1
