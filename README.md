@@ -25,13 +25,13 @@ serial poll (after a SRQ). You must add devices manually to the list. If a devic
 list generates a SRQ this SRQ is not correctly handled.
 
 ### Software
-This code implements a kind of a GPIB controller. It understands a few built in commands.
+This code implements a kind of GPIB controller. It understands a few built in commands.
 The hardware should be connected via GPIB interface, the controlling computer/terminal via RS232.
 Then the following commands can be used. <n> is a GPIB device address, e.g. 3.:
-* .a <n> - set partner device address to value <n>.
+* .a n - set partner device address to value n.
 The partner device is the device to control.
-* .+ <n> - add partner device address to list of known devices. Used for SRQ handling.
-* .- <n> - remove partner device address from list of known devices. Used for SRQ handling.
+* .+ n - add partner device address to list of known devices. Used for SRQ handling.
+* .- n - remove partner device address from list of known devices. Used for SRQ handling.
 * .h - print some help.
 * .i - print out status of some GPIB lines and current partner address.
 
