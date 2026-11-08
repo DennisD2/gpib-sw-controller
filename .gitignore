@@ -3,6 +3,7 @@
 *.hex
 doc/html/.svn/*
 */Debug/*
-Debug/*
+gpib_004/Debug/gpib.d
 *.d
 *.o
+/.idea
