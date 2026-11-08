@@ -1,5 +1,5 @@
 # GPIB software only controller code
-GPIB software only controller code for AVR micro controllers.
+GPIB software only controller code for AVR microcontrollers.
 
 ## Introduction
 These files implement a GPIB controller. No special hardware is used, the port
@@ -44,7 +44,6 @@ The code was tested with the following devices:
 * HP3478 multimeter
 * HP75000 VXI mainframe with several modules installed (uses secondary addresses)
 
-
 The implementation may not work well with your device.But it's worth a try :-)
 
 ### Files
@@ -59,7 +58,17 @@ The Doxygen file contains doxygen controls (automatic creation of documentation 
 ### Code Description
 See doc/html/index.html
 
-### gpib_cmds Some arbitrary GPIB commands
+### Code status
+This is old, nearly ancient code with latest code changes from 2012.
+I keep the code here to have a reference when diving into GPIB.
+
+My self-made hardware was not needed at some point in time and is gone. 
+So only software is left. 
+
+Nowadays, I am using a USB-to-GPIB adapter from National. At least
+the originals fron NI work well with Linux. Alas, it is required to add linuxgpib.
+
+### Some arbitrary GPIB commands
 Here are some commands for testing.
 #### Tek 2432a
 ```bash
