@@ -47,16 +47,17 @@ The code was tested with the following devices:
 The implementation may not work well with your device.But it's worth a try :-)
 
 ### Files
-The implementation of GPIB protocol and controller functions itself is in gpib.h and gpib.c.
-The controller is implemented in main_gpib.c as a big never-ending loop.
+The implementation of GPIB protocol and controller functions itself is in [gpib.h](gpib.h) 
+and [gpib.c](gpib.c).
+The controller is implemented in [main_gpib.c](main_gpib.c) as a big never-ending loop.
 
 Errors are usually timeouts because the device behaves different
 then the controller expected. The timeout functionality is implemented as 16 bit timer in
-timer16.h and timer16.c. For generic common defines the file defs.h is used.
-The Doxygen file contains doxygen controls (automatic creation of documentation from source).
+[timer16.h](timer16.h) and [timer16.c](timer16.c). For generic common defines the file [defs.h](defs.h) is used.
+The [Doxyfile](Doxyfile) file contains doxygen controls (automatic creation of documentation from source).
 
 ### Code Description
-See doc/html/index.html
+See [doc/html/index.html](doc/html/index.html)
 
 ### Code status
 This is old, nearly ancient code with latest code changes from 2012.
