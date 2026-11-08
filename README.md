@@ -67,7 +67,11 @@ My self-made hardware was not needed at some point in time and is gone.
 So only software is left. 
 
 Nowadays, I am using a USB-to-GPIB adapter from National. At least
-the originals fron NI work well with Linux. Alas, it is required to add linuxgpib.
+the originals from NI work well with Linux. Alas, it is required to add linuxgpib.
+
+The code was developed with Eclipse IDE with some plugins allowing AVR development.
+This is the reason why there is no valid Makefile. I will try to add a generic
+Makefile to have at least possibility to make code compile. 
 
 ### Some arbitrary GPIB commands
 Here are some commands for testing.
