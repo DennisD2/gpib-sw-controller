@@ -18,14 +18,14 @@ Licence:	GNU General Public License
  *  @author Dennis Dingeldein  http://www.dingeldein-online.de
  */
 
-#include "gpib_004/timer16.h"
+#include "timer16.h"
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "gpib_004/uart.h"
+#include "uart.h"
 
 volatile uint8_t timer; /**< timer value, increased by interrupt */
 volatile uint8_t s; // second value, increased by one every second

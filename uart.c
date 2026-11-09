@@ -39,7 +39,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
-#include "gpib_004/uart.h"
+#include "uart.h"
 
 /*
  *  constants and macros
@@ -82,8 +82,10 @@
   || defined(__AVR_ATmega323__)
 /* ATmega with one USART */
 #define ATMEGA_USART
-#define UART0_RECEIVE_INTERRUPT   SIG_UART_RECV
-#define UART0_TRANSMIT_INTERRUPT  SIG_UART_DATA
+//#define UART0_RECEIVE_INTERRUPT   SIG_UART_RECV
+//#define UART0_TRANSMIT_INTERRUPT  SIG_UART_DATA
+#define UART0_RECEIVE_INTERRUPT   USART_RXC_vect
+#define UART0_TRANSMIT_INTERRUPT  USART_UDRE_vect
 #define UART0_STATUS   UCSRA
 #define UART0_CONTROL  UCSRB
 #define UART0_DATA     UDR

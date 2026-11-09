@@ -21,10 +21,10 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 
-#include "gpib_004/uart.h"
+#include "uart.h"
 
-#include "gpib_004/gpib.h"
-#include "gpib_004/timer16.h"
+#include "gpib.h"
+#include "timer16.h"
 
 /**
  * if set, WITH_TIMEOUT means that waiting loops are interrupted by timeout.
