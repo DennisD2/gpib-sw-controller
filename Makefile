@@ -34,7 +34,7 @@ gpib.o: gpib.s
 gpib.elf: $(OBJS)
 	# create ELF file
 	#avr-gcc $(CFLAGS1) -o "gpib.elf" $(OBJS) $(LIBS)
-	avr-gcc -g -O0 -mmcu=atmega32 -DF_CPU=16000000 -B /usr/bin/avr- -B/usr/avr/sys-root/lib/avr5 -L /usr/avr/sys-root/lib/avr5 \
+	avr-gcc -Wl,-Map,gpib.map -g -O0 -u,vprintf -mmcu=atmega32 -DF_CPU=16000000 -B /usr/bin/avr- -B/usr/avr/sys-root/lib/avr5 -L /usr/avr/sys-root/lib/avr5 \
  		-o "gpib.elf" main_gpib.o gpib.o timer16.o uart.o
 
 gpib.lss: gpib.elf
