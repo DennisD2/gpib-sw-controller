@@ -2,3 +2,6 @@
 *.hex
 *.d
 *.o
+*.s
+/gpib.elf
+/gpib.lss
